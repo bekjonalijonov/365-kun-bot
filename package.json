@@ -1,0 +1,15 @@
+{
+  "name": "yangi-odat-365-bot",
+  "version": "1.0.0",
+  "description": "Yangi Odat 🌱 365 kunlik g'oyalar bot",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "node-telegram-bot-api": "^0.66.0",
+    "node-schedule": "^2.1.1"
+  }
+}

@@ -1,0 +1,18 @@
+[
+  {
+    "day": 1,
+    "tasks": [
+      "Bugun hayotingdagi eng katta to‘siqni 1 jumlada yoz.",
+      "Uni kamaytirish uchun 1 ta kichik odat tanla.",
+      "Istasang, natijani izohlarda bo‘lish."
+    ]
+  },
+  {
+    "day": 2,
+    "tasks": [
+      "Bugun diqqatni eng ko‘p nima egallab olayotganini yozib ko‘r.",
+      "O‘sha narsadan 10 daqiqaga bo‘lsa ham uzoqlashib ko‘r.",
+      "Qanday his bo‘lganini bitta jumlada yoz."
+    ]
+  }
+]

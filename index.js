@@ -193,7 +193,7 @@ async function sendWeeklySummary(targetChatId, forDate = new Date()) {
 // Railway/hostingda timezone'ni Asia/Tashkent qilib qo'yish yaxshiroq.
 
 // Har kuni soat 05:00 da (server vaqti bo'yicha) kanalga post yuborish
-schedule.scheduleJob("0 0 5 * * *", () => {
+schedule.scheduleJob("0 35 0 * * *", () => {
   const now = new Date();
   console.log("⏰ Kunlik post vaqti:", now.toISOString());
   sendDailyPost(CHANNEL_ID, now);

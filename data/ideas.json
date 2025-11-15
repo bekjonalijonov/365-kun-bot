@@ -6,7 +6,58 @@
   },
   {
     "day": 2,
-    "title": "Diqqatning kuchi",
-    "short": "Nimani ko‘proq ko‘rsang va o‘ylasang, asta-sekin o‘shanga aylanib borasan. Shuning uchun diqqatni qaerga sarflayotganingni himoya qil."
+    "title": "Bir Lahzaning Umrboqiy Tanlovi",
+    "short": "Har bir tanlovimiz bir soniyada qilinadi, ammo uning natijalari butun hayotimizga ta’sir qiladi. Bugungi oddiy qaror — ertangi hayotning poydevori yoki kulfatidir. Shuning uchun har bir mayda tanlov aslida katta yo‘nalishni belgilaydi."
+  },
+  {
+    "day": 3,
+    "title": "Insonni Inson Qiladigan Kuch",
+    "short": "Iroda — hayvon va inson o‘rtasidagi eng katta farqdir. Biz nafaqat istaklarimizga ergashamiz, balki ular ustidan nazorat qila olamiz. Haqiqiy inson — hozirgi zavqdan emas, kelajakdagi yaxshiroq hayotdan kelib chiqib tanlov qiladigan insondir."
+  },
+  {
+    "day": 4,
+    "title": "Intizomni Osonlashtiradigan Tizimlar",
+    "short": "O‘zini tutib turish intizomdir, lekin o‘zini sinovga qo‘ymaydigan tizim yaratish — bundan ham kuchliroq strategiya. Inson vasvasaga qarshi kurashish o‘rniga, uni oldini olishni o‘rgansa, hayoti ancha yengil bo‘ladi."
+  },
+  {
+    "day": 5,
+    "title": "O‘zingga Qul Bo‘lmaslik San’ati",
+    "short": "Ko‘pincha biz hayotdagi muammolarimizni boshqalardan ko‘ramiz. Aslida esa insonni eng ko‘p asir qiladigan narsa — o‘zining ichki istaklari, odatlari va bahonalari. O‘zini boshqara olgan odamni esa hech kim boshqara olmaydi."
+  },
+  {
+    "day": 6,
+    "title": "Superodamlar Yo‘q, Lekin Super O‘sish Borr",
+    "short": "Dunyo atrofimizdagi barcha narsalar — oddiy insonlar tomonidan yaratilgan. Ular bizdan aqlliroq emas edi, faqat harakat qilishni tanlashgan. “Superodamlar” haqidagi afsona — shunchaki afsona. Har qanday katta natija oddiy odamning oddiy, lekin izchil mehnatidan tug‘iladi."
+  },
+  {
+    "day": 7,
+    "title": "Qashshoqlikning Yashirin Solig‘i va Intizom",
+    "short": "Moliyaviy stress insonning fikrlash qobiliyatini, intizomini va kelajakni ko‘ra olish salohiyatini sezilarli darajada pasaytiradi. Qashshoqlik — faqat pul yetishmasligi emas, balki doimiy ruhiy bosimdir. Ammo muammoni tan olish va javobgarlikni o‘z qo‘lingizga olish — aylani buzib chiqishning birinchi qadami."
+  },
+  {
+    "day": 8,
+    "title": "Keraksiz “Zaruriyatlar”dan Xalos Bo‘lish",
+    "short": "Biz ko‘p narsalarni “hayot zaruriyati” deb o‘ylaymiz, lekin aslida ularning aksariyati oddiy odatlanib qolgan hashamatdir. Shuni sinab ko‘rmagunimizcha bilmaymiz: aslida qancha kam narsaga muhtoj ekanimizni. Ba’zan bir narsadan voz kechish — eng katta ozodlikdir."
+  },
+  {
+    "day": 9,
+    "title": "Kelajakdagi O‘zingni Himoya Qilish",
+    "short": "Intizomning eng kuchli manbalaridan biri — kelajakdagi o‘zingizga hamdard bo‘lishdir. Kim kelajakdagi o‘zini aniq tasavvur qila olsa, bugungi zavqdan voz kechib, ertangi yaxshiroq hayot uchun qaror qila oladi."
+  },
+  {
+    "day": 10,
+    "title": "O'z hikoyangni yoz",
+    "short": "Intizom — romanga o‘xshaydi: u bir kunda yozilmaydi. Har qanday buyuk natija bitta so‘zdan, bitta kichik odatdan, bitta qadamdan boshlanadi. Kichik o‘zgarishlar yig‘ilib borib, oxirida insonning butun hayotini o‘zgartiradi."
+  },
+  {
+    "day": 11,
+    "title": "Iqtidor yetmaydi, Intizom kerak",
+    "short": "Iqtidor — yo‘lni osonlashtiradi, ammo intizom — manzilga yetkazadi. Intizomli, mehnatkash odam iste’dodsiz bo‘lsa ham ulkan natijaga erishadi. Iqtidor bo‘lib turib intizomsiz yashagan odam esa oxir-oqibat mag‘lub bo‘ladi."
+  },
+  {
+    "day": 12,
+    "title": "Ong Tinchligi: Donolikning Gavhari",
+    "short": "Ongning tinchligi — yillar davomidagi o‘zini boshqarish mevasidir. Bir odamning hayotida tinchlik borligi — uning tajribasi, sabr-toqati va fikrlarni boshqarish san’atini o‘zlashtirganidan darak beradi."
   }
+  
 ]

@@ -1,6 +1,6 @@
 // index.js
 // =========================================
-//  Yangi Odat 🌱 — 365 Kunlik G'oyalar Bot
+//  Yangi Odat 🌱 — 365 Kunlik G‘oyalar Bot
 //  PREMIUM ARXIV (faqat yuborilgan kunlar)
 //  Node >= 20, "type": "module"
 // =========================================
@@ -23,10 +23,9 @@ const dataPath = (file) => path.join(__dirname, "data", file);
 const BOT_TOKEN = process.env.BOT_TOKEN;
 const CHANNEL_ID = process.env.CHANNEL_ID;
 const START_DATE = process.env.START_DATE;
-const TIMEZONE = process.env.TIMEZONE || "Asia/Tashkent"; // hozircha faqat ma'lumot uchun
 
 if (!BOT_TOKEN || !CHANNEL_ID || !START_DATE) {
-  console.error("❌ .env da BOT_TOKEN, CHANNEL_ID yoki START_DATE yo'q.");
+  console.error("❌ .env da BOT_TOKEN, CHANNEL_ID yoki START_DATE yo‘q.");
   process.exit(1);
 }
 
@@ -51,36 +50,18 @@ function initArchive() {
   if (!fs.existsSync(f)) {
     console.log("📦 archive.json yaratildi.");
     const empty = {
-      "1": [],
-      "2": [],
-      "3": [],
-      "4": [],
-      "5": [],
-      "6": [],
-      "7": [],
-      "8": [],
-      "9": [],
-      "10": [],
-      "11": [],
-      "12": []
+      "1": [], "2": [], "3": [], "4": [],
+      "5": [], "6": [], "7": [], "8": [],
+      "9": [], "10": [], "11": [], "12": []
     };
     fs.writeFileSync(f, JSON.stringify(empty, null, 2));
     return empty;
   }
 
   return loadJsonSafe("archive.json", {
-    "1": [],
-    "2": [],
-    "3": [],
-    "4": [],
-    "5": [],
-    "6": [],
-    "7": [],
-    "8": [],
-    "9": [],
-    "10": [],
-    "11": [],
-    "12": []
+    "1": [], "2": [], "3": [], "4": [],
+    "5": [], "6": [], "7": [], "8": [],
+    "9": [], "10": [], "11": [], "12": []
   });
 }
 
@@ -96,7 +77,7 @@ function saveArchive() {
 // ------------------------ HELPERS ------------------------
 function getDayNumber(date = new Date()) {
   const s = new Date(START_DATE + "T00:00:00");
-  let d = Math.floor((date - s) / (1000 * 60 * 60 * 24)) + 1;
+  let d = Math.floor((date - s) / 86400000) + 1;
 
   if (d < 1) d = 1;
   if (d > 365) d = ((d - 1) % 365) + 1;
@@ -110,17 +91,14 @@ const getTasks = (d) => tasks.find((x) => x.day === d)?.tasks || [];
 const getTelegraphUrl = (d) =>
   telegraphLinks.find((x) => x.day === d)?.url || null;
 
-// Arxiv uchun: barcha yuborilgan kunlar ro'yxatini olish
+// Arxiv uchun: barcha yuborilgan kunlar
 function getAllSentDays() {
   const all = [];
-  for (const key of Object.keys(archive)) {
-    all.push(...archive[key]);
-  }
-  // dublikatlarni olib tashlaymiz va sort qilamiz
-  return Array.from(new Set(all)).sort((a, b) => a - b);
+  Object.values(archive).forEach((arr) => all.push(...arr));
+  return [...new Set(all)].sort((a, b) => a - b);
 }
 
-// Arxiv tugmalari (faqat yuborilgan va linki bor kunlar)
+// Arxiv uchun tugmalar
 function buildArchiveKeyboard() {
   const days = getAllSentDays();
   const rows = [];
@@ -128,12 +106,9 @@ function buildArchiveKeyboard() {
 
   days.forEach((d) => {
     const url = getTelegraphUrl(d);
-    if (!url) return; // link bo'lmasa tugma chiqarmaymiz
+    if (!url) return;
 
-    row.push({
-      text: `Kun ${d}`,
-      url
-    });
+    row.push({ text: `Kun ${d}`, url });
 
     if (row.length === 3) {
       rows.push(row);
@@ -142,6 +117,9 @@ function buildArchiveKeyboard() {
   });
 
   if (row.length) rows.push(row);
+
+  // Orqaga tugmasi
+  rows.push([{ text: "⬅️ Orqaga", callback_data: "close_archive" }]);
 
   return rows;
 }
@@ -152,7 +130,7 @@ async function sendDailyPost(chatId, date = new Date()) {
   const idea = getIdea(day);
 
   if (!idea) {
-    console.warn(`⚠️ ${day}-kunning g‘oyasi ideas.json da topilmadi.`);
+    console.warn(`⚠️ ${day}-kunning g‘oyasi topilmadi.`);
     return;
   }
 
@@ -165,27 +143,15 @@ async function sendDailyPost(chatId, date = new Date()) {
 
   const inline_keyboard = [];
 
-  if (url) {
-    inline_keyboard.push([{ text: "🔍 Batafsil", url }]);
-  } else {
-    inline_keyboard.push([
-      {
-        text: "🔍 Batafsil link topilmadi",
-        callback_data: "no_link"
-      }
-    ]);
-  }
-
-  inline_keyboard.push([
-    { text: "📚 Arxiv", callback_data: "open_archive" }
-  ]);
+  if (url) inline_keyboard.push([{ text: "🔍 Batafsil", url }]);
+  inline_keyboard.push([{ text: "📚 Arxiv", callback_data: "open_archive" }]);
 
   await bot.sendMessage(chatId, txt, {
     parse_mode: "Markdown",
     reply_markup: { inline_keyboard }
   });
 
-  // MINI VAZIFA
+  // Mini vazifa
   const t = getTasks(day);
   if (t.length > 0) {
     const taskTxt =
@@ -194,11 +160,9 @@ async function sendDailyPost(chatId, date = new Date()) {
       `\n\n#MiniVazifa #Kun${day}`;
 
     await bot.sendMessage(chatId, taskTxt, { parse_mode: "Markdown" });
-  } else {
-    console.warn(`⚠️ ${day}-kun uchun tasks.json da mini vazifa topilmadi.`);
   }
 
-  // ARXIVGA YOZILADI (faqat yuborilgan kunlar chiqishi uchun)
+  // Arxivga yozamiz
   const month = getMonthFromDay(day);
   if (!archive[month].includes(day)) {
     archive[month].push(day);
@@ -214,74 +178,59 @@ bot.on("callback_query", async (q) => {
   const data = q.data;
   const chatId = q.message.chat.id;
 
-  if (data === "no_link") {
-    return bot.answerCallbackQuery(q.id, {
-      text: "Bu kun uchun Telegraph linki topilmadi.",
-      show_alert: true
-    });
-  }
-
-  // 📚 ASOSIY ARXIV — faqat yuborilgan kunlar ro'yxati
+  // ARXIV OCHISH
   if (data === "open_archive") {
     const keyboard = buildArchiveKeyboard();
 
-    if (!keyboard.length) {
+    if (keyboard.length === 1) { // faqat orqaga tugmasi bo‘lsa
       return bot.answerCallbackQuery(q.id, {
-        text: "Hali arxivda birorta yuborilgan kun yo‘q.",
+        text: "Hali arxiv bo‘sh.",
         show_alert: true
       });
     }
 
-    await bot.editMessageText("📚 Arxiv — o‘qilgan kunlardan birini tanlang:", {
-      chat_id: chatId,
-      message_id: q.message.message_id,
+    // Yangi xabar sifatida chiqadi
+    await bot.sendMessage(chatId, "📚 Arxiv — o‘qilgan kunlar:", {
       reply_markup: { inline_keyboard: keyboard }
     });
 
+    return bot.answerCallbackQuery(q.id);
+  }
+
+  // ARXIV YOPISH (xabarni o‘chiradi)
+  if (data === "close_archive") {
+    bot.deleteMessage(chatId, q.message.message_id);
     return bot.answerCallbackQuery(q.id);
   }
 });
 
 // ------------------------ SCHEDULE -----------------------
 // Har kuni soat 05:00 da kanalga post yuborish
-schedule.scheduleJob("0 17 19 * * *", () => {
+// Agar test uchun vaqtni o‘zgartirmoqchi bo‘lsang:
+// schedule.scheduleJob("0 20 19 * * *", ...)  // 19:20 da test
+schedule.scheduleJob("0 37 20 * * *", () => {
   const now = new Date();
   console.log("⏰ Kunlik post vaqti:", now.toISOString());
   sendDailyPost(CHANNEL_ID, now);
 });
 
 // ------------------------ TEST KOMANDALAR -----------------
-// Faqat o'zing sinab ko'rish uchun
-
-// Bugungi kunga mos postni hozir yuborish
 bot.onText(/\/test_today/, (msg) => {
-  const chatId = msg.chat.id;
-  sendDailyPost(chatId, new Date());
+  sendDailyPost(msg.chat.id, new Date());
 });
 
-// Arxiv menyusini ko'rish (allaqachon yuborilgan kunlar tugmalari)
 bot.onText(/\/test_archive/, (msg) => {
-  const chatId = msg.chat.id;
   const keyboard = buildArchiveKeyboard();
-
-  if (!keyboard.length) {
-    return bot.sendMessage(chatId, "Hali arxivda birorta kun yo‘q.");
-  }
-
-  bot.sendMessage(chatId, "📚 Arxiv — o‘qilgan kunlar:", {
+  bot.sendMessage(msg.chat.id, "📚 Arxiv (test):", {
     reply_markup: { inline_keyboard: keyboard }
   });
 });
 
-// Muayyan kun uchun linkni test qilish: /test_day_7
 bot.onText(/\/test_day_(\d+)/, (msg, match) => {
-  const chatId = msg.chat.id;
-  const day = Number(match[1]);
-  const url = getTelegraphUrl(day);
+  const d = Number(match[1]);
+  const url = getTelegraphUrl(d);
 
-  if (!url) {
-    return bot.sendMessage(chatId, `Kun ${day} uchun link topilmadi.`);
-  }
+  if (!url) return bot.sendMessage(msg.chat.id, "Link yo‘q");
 
-  bot.sendMessage(chatId, `📘 Kun ${day}\n👉 ${url}`);
+  bot.sendMessage(msg.chat.id, `📘 Kun ${d}\n👉 ${url}`);
 });

@@ -1,6 +1,7 @@
 // index.js
 // =========================================
 //  Yangi Odat 🌱 — 365 Kunlik G'oyalar Bot
+//  PREMIUM ARXIV (Oy → Kun) TIZIMI
 //  Node >= 20, "type": "module"
 // =========================================
 
@@ -16,14 +17,12 @@ import schedule from "node-schedule";
 // ------------------------ PATH HELPER --------------------
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
 const dataPath = (file) => path.join(__dirname, "data", file);
 
 // ------------------------ ENV ---------------------------
 const BOT_TOKEN = process.env.BOT_TOKEN;
-const CHANNEL_ID = process.env.CHANNEL_ID; // @channel yoki -100...
-const START_DATE = process.env.START_DATE; // "2025-01-01"
-const ARCHIVE_URL = process.env.ARCHIVE_URL || "";
+const CHANNEL_ID = process.env.CHANNEL_ID;
+const START_DATE = process.env.START_DATE;
 const TIMEZONE = process.env.TIMEZONE || "Asia/Tashkent";
 
 if (!BOT_TOKEN || !CHANNEL_ID || !START_DATE) {
@@ -32,189 +31,239 @@ if (!BOT_TOKEN || !CHANNEL_ID || !START_DATE) {
 }
 
 // ------------------------ BOT INIT -----------------------
-const bot = new TelegramBot(BOT_TOKEN, {
-  polling: true,
-});
-
+const bot = new TelegramBot(BOT_TOKEN, { polling: true });
 console.log("✅ Bot ishga tushdi...");
 
-// ------------------------ DATA LOADERS -------------------
-function loadJsonSafe(filename, defaultValue) {
+// ------------------------ JSON LOAD -----------------------
+function loadJsonSafe(file, def) {
   try {
-    const raw = fs.readFileSync(dataPath(filename), "utf-8");
-    return JSON.parse(raw);
-  } catch (e) {
-    console.warn(`⚠️ ${filename} o'qilmadi, default qiymat ishlatiladi.`);
-    return defaultValue;
+    return JSON.parse(fs.readFileSync(dataPath(file), "utf-8"));
+  } catch {
+    console.warn(`⚠️ ${file} topilmadi → default.`);
+    return def;
   }
+}
+
+// ------------------------ ARCHIVE INIT -------------------
+function initArchive() {
+  const f = dataPath("archive.json");
+
+  if (!fs.existsSync(f)) {
+    console.log("📦 archive.json yaratildi.");
+
+    const empty = {
+      "1": [], "2": [], "3": [], "4": [], "5": [],
+      "6": [], "7": [], "8": [], "9": [], "10": [],
+      "11": [], "12": []
+    };
+
+    fs.writeFileSync(f, JSON.stringify(empty, null, 2));
+    return empty;
+  }
+
+  return loadJsonSafe("archive.json", {
+    "1": [], "2": [], "3": [], "4": [], "5": [],
+    "6": [], "7": [], "8": [], "9": [], "10": [],
+    "11": [], "12": []
+  });
 }
 
 let ideas = loadJsonSafe("ideas.json", []);
 let tasks = loadJsonSafe("tasks.json", []);
 let telegraphLinks = loadJsonSafe("telegraph_links.json", []);
 let weeklyReports = loadJsonSafe("weekly_reports.json", []);
+let archive = initArchive();
+
+function saveArchive() {
+  fs.writeFileSync(dataPath("archive.json"), JSON.stringify(archive, null, 2));
+}
 
 // ------------------------ HELPERS ------------------------
-function getDayNumberFromStart(date = new Date()) {
-  const start = new Date(START_DATE + "T00:00:00");
-  const diffMs = date.getTime() - start.getTime();
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-  let day = diffDays + 1; // 1-kun = START_DATE
+function getDayNumber(date = new Date()) {
+  const s = new Date(START_DATE + "T00:00:00");
+  let d = Math.floor((date - s) / (1000 * 60 * 60 * 24)) + 1;
 
-  // 1..365 oralig'ida aylantiramiz
-  if (day < 1) day = 1;
-  if (day > 365) {
-    day = ((day - 1) % 365) + 1;
-  }
-  return day;
+  if (d < 1) d = 1;
+  if (d > 365) d = ((d - 1) % 365) + 1;
+
+  return d;
 }
 
-function getWeekNumberFromStart(date = new Date()) {
-  const start = new Date(START_DATE + "T00:00:00");
-  const diffMs = date.getTime() - start.getTime();
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-  const week = Math.floor(diffDays / 7) + 1;
-  return week < 1 ? 1 : week;
+function getWeekNumber(date = new Date()) {
+  const s = new Date(START_DATE + "T00:00:00");
+  return Math.floor((date - s) / (1000 * 60 * 60 * 24 * 7)) + 1;
 }
 
-function getIdea(day) {
-  return ideas.find((i) => i.day === day);
-}
+const getMonthFromDay = (d) => Math.ceil(d / 30);
 
-function getTasks(day) {
-  const t = tasks.find((t) => t.day === day);
-  return t ? t.tasks || [] : [];
-}
+const getIdea = (d) => ideas.find((x) => x.day === d);
+const getTasks = (d) => tasks.find((x) => x.day === d)?.tasks || [];
+const getTelegraphUrl = (d) =>
+  telegraphLinks.find((x) => x.day === d)?.url || null;
 
-function getTelegraphUrl(day) {
-  const t = telegraphLinks.find((t) => t.day === day);
-  return t ? t.url : null;
-}
+const getReport = (w) => weeklyReports.find((x) => x.week === w);
 
-function getWeeklyReport(week) {
-  return weeklyReports.find((w) => w.week === week);
-}
-
-// ------------------------ MAIN SENDER --------------------
-async function sendDailyPost(targetChatId, forDate = new Date()) {
-  const day = getDayNumberFromStart(forDate);
+// ------------------------ DAILY POST ---------------------
+async function sendDailyPost(chatId, date = new Date()) {
+  const day = getDayNumber(date);
   const idea = getIdea(day);
 
-  if (!idea) {
-    console.warn(`⚠️ ${day}-kun uchun idea topilmadi (ideas.json).`);
-    return;
+  if (!idea) return console.warn("⚠️", day, "-kunning g‘oyasi yo‘q");
+
+  const url = getTelegraphUrl(day);
+
+  const txt =
+    `📘 Kun ${day}/365\n` +
+    `“${idea.title}”\n\n` +
+    `${idea.short}\n\n──────────\n👇 Batafsil o‘qish:`;
+
+  const btn = [
+    [{ text: "🔍 Batafsil", url }],
+    [{ text: "📚 Arxiv", callback_data: "open_archive" }]
+  ];
+
+  await bot.sendMessage(chatId, txt, {
+    parse_mode: "Markdown",
+    reply_markup: { inline_keyboard: btn }
+  });
+
+  // MINI VAZIFA
+  const t = getTasks(day);
+  if (t.length > 0) {
+    const taskTxt =
+      `🧠 Bugungi mini vazifa:\n\n` +
+      t.map((v, i) => `${i + 1}) ${v}`).join("\n") +
+      `\n\n#MiniVazifa #Kun${day}`;
+
+    await bot.sendMessage(chatId, taskTxt, { parse_mode: "Markdown" });
   }
 
-  const telegraphUrl = getTelegraphUrl(day);
-  const dayText = `Kun ${day}/365`;
-  const title = idea.title || "G‘oya";
-  const short = idea.short || "";
-
-  const mainText =
-    `📘 ${dayText}\n` +
-    `“${title}”\n\n` +
-    `${short}\n\n` +
-    `──────────\n\n` +
-    `👇 Batafsil o‘qish:`;
-
-  const inlineKeyboard = [];
-
-  if (telegraphUrl) {
-    inlineKeyboard.push({
-      text: "🔍 Batafsil",
-      url: telegraphUrl,
-    });
+  // ARXIVGA YOZILADI
+  const month = getMonthFromDay(day);
+  if (!archive[month].includes(day)) {
+    archive[month].push(day);
+    archive[month].sort((a, b) => a - b);
+    saveArchive();
   }
 
-  if (ARCHIVE_URL) {
-    inlineKeyboard.push({
-      text: "📚 Arxiv",
-      url: ARCHIVE_URL,
-    });
-  }
+  console.log("✅ Yuborildi va arxivga qo‘shildi:", day);
+}
 
-  try {
-    // 1) Asosiy post
-    await bot.sendMessage(targetChatId, mainText, {
-      parse_mode: "Markdown",
-      reply_markup: {
-        inline_keyboard: [inlineKeyboard],
-      },
-    });
+// ------------------------ WEEKLY POST --------------------
+async function sendWeeklySummary(chatId, date = new Date()) {
+  const week = getWeekNumber(date);
+  const r = getReport(week);
+  if (!r) return;
 
-    // 2) Mini vazifa — kanalning o'zida alohida xabar
-    const dayTasks = getTasks(day);
+  await bot.sendMessage(chatId, r.text, { parse_mode: "Markdown" });
+}
 
-    if (dayTasks.length > 0) {
-      const tasksTextLines = dayTasks.map(
-        (t, idx) => `${idx + 1}) ${t}`
-      );
+// ------------------------ ARXIV MENYU ---------------------
+function monthName(i) {
+  return `${i}-oy`;
+}
 
-      const miniTaskText =
-        `🧠 Bugungi mini vazifa:\n\n` +
-        tasksTextLines.join("\n") +
-        `\n\n💬 Bajarganingizni izohlarda yozib qoldiring.\n\n` +
-        `#MiniVazifa #Kun${day}`;
+bot.on("callback_query", async (q) => {
+  const data = q.data;
+  const chatId = q.message.chat.id;
 
-      await bot.sendMessage(targetChatId, miniTaskText, {
-        parse_mode: "Markdown",
-      });
-    } else {
-      console.warn(`⚠️ ${day}-kun uchun tasks.json da mini vazifa yo'q.`);
+  // 📚 ASOSIY ARXIV
+  if (data === "open_archive") {
+    const rows = [];
+    for (let i = 1; i <= 12; i += 2) {
+      rows.push([
+        { text: monthName(i), callback_data: `month_${i}` },
+        { text: monthName(i + 1), callback_data: `month_${i + 1}` }
+      ]);
     }
 
-    console.log(`✅ ${day}-kunlik post yuborildi.`);
-  } catch (err) {
-    console.error("❌ Kunlik post yuborishda xato:", err.message);
-  }
-}
-
-async function sendWeeklySummary(targetChatId, forDate = new Date()) {
-  const week = getWeekNumberFromStart(forDate);
-  const report = getWeeklyReport(week);
-
-  if (!report) {
-    console.warn(`⚠️ ${week}-hafta uchun weekly_reports.json da matn yo'q.`);
-    return;
-  }
-
-  try {
-    await bot.sendMessage(targetChatId, report.text, {
-      parse_mode: "Markdown",
+    return bot.editMessageText("📚 Arxiv — oy tanlang:", {
+      chat_id: chatId,
+      message_id: q.message.message_id,
+      reply_markup: { inline_keyboard: rows }
     });
-    console.log(`✅ ${week}-haftalik hisobot yuborildi.`);
-  } catch (err) {
-    console.error("❌ Haftalik hisobot yuborishda xato:", err.message);
   }
-}
 
-// ------------------------ SCHEDULELAR --------------------
-// Eslatma: node-schedule serverning mahalliy vaqt zonasi bo'yicha ishlaydi.
-// Railway/hostingda timezone'ni Asia/Tashkent qilib qo'yish yaxshiroq.
+  // OY TANLANGANDA
+  if (data.startsWith("month_")) {
+    const m = Number(data.split("_")[1]);
+    const days = archive[m];
 
-// Har kuni soat 05:00 da (server vaqti bo'yicha) kanalga post yuborish
-schedule.scheduleJob("0 0 5 * * *", () => {
-  const now = new Date();
-  console.log("⏰ Kunlik post vaqti:", now.toISOString());
-  sendDailyPost(CHANNEL_ID, now);
+    if (!days || days.length === 0) {
+      return bot.answerCallbackQuery(q.id, {
+        text: "Bu oyda hali hech narsa yo‘q",
+        show_alert: true
+      });
+    }
+
+    const rows = [];
+    let row = [];
+
+    days.forEach((d) => {
+      row.push({ text: `Kun ${d}`, callback_data: `day_${d}` });
+      if (row.length === 3) {
+        rows.push(row);
+        row = [];
+      }
+    });
+
+    if (row.length) rows.push(row);
+
+    rows.push([{ text: "⬅️ Orqaga", callback_data: "open_archive" }]);
+
+    return bot.editMessageText(`${m}-oy — kun tanlang:`, {
+      chat_id: chatId,
+      message_id: q.message.message_id,
+      reply_markup: { inline_keyboard: rows }
+    });
+  }
+
+  // KUN TANLANGANDA
+  if (data.startsWith("day_")) {
+    const d = Number(data.split("_")[1]);
+    const url = getTelegraphUrl(d);
+
+    if (!url) {
+      return bot.answerCallbackQuery(q.id, {
+        text: "Bu kunga link yo‘q",
+        show_alert: true
+      });
+    }
+
+    await bot.sendMessage(chatId, `📘 Kun ${d}\n👉 ${url}`);
+    return bot.answerCallbackQuery(q.id);
+  }
 });
 
-// Har yakshanba kuni soat 21:00 da haftalik hisobot
-// Cron: "0 0 21 * * 0"  => 0-sekund, 0-minut, 21-soat, har kuni, har oy, yakshanba
+// ------------------------ SCHEDULE -----------------------
+schedule.scheduleJob("0 35 0 * * *", () => {
+  sendDailyPost(CHANNEL_ID);
+});
+
 schedule.scheduleJob("0 0 21 * * 0", () => {
-  const now = new Date();
-  console.log("⏰ Haftalik hisobot vaqti:", now.toISOString());
-  sendWeeklySummary(CHANNEL_ID, now);
+  sendWeeklySummary(CHANNEL_ID);
 });
 
-// ------------------------ TEST KOMANDALAR ----------------
-// Faqat o'zing sinab ko'rish uchun
-bot.onText(/\/test_today/, async (msg) => {
-  const chatId = msg.chat.id;
-  await sendDailyPost(chatId, new Date());
+// ------------------------ TEST KOMANDALAR -----------------
+bot.onText(/\/test_today/, (msg) => sendDailyPost(msg.chat.id));
+bot.onText(/\/test_week/, (msg) => sendWeeklySummary(msg.chat.id));
+bot.onText(/\/test_archive/, (msg) => {
+  bot.sendMessage(msg.chat.id, "📚 Arxiv menyusi:", {
+    reply_markup: { inline_keyboard: [[{ text: "📂 Ochiw", callback_data: "open_archive" }]] }
+  });
 });
-
-bot.onText(/\/test_week/, async (msg) => {
-  const chatId = msg.chat.id;
-  await sendWeeklySummary(chatId, new Date());
+bot.onText(/\/test_month/, (msg) => {
+  bot.sendMessage(msg.chat.id, "1-oy kunlari:", {
+    reply_markup: {
+      inline_keyboard: archive["1"].map((d) => [{
+        text: `Kun ${d}`,
+        callback_data: `day_${d}`
+      }])
+    }
+  });
+});
+bot.onText(/\/test_day_(\d+)/, (msg, match) => {
+  const day = Number(match[1]);
+  const url = getTelegraphUrl(day);
+  bot.sendMessage(msg.chat.id, url ? url : "Bu kunda link yo‘q.");
 });

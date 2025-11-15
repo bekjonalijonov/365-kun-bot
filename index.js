@@ -181,6 +181,11 @@ function buildMonthKeyboard() {
 
   if (row.length) rows.push(row);
 
+  // 🔥 YANGI QO‘SHILDI — Arxivdan chiqish
+  rows.push([
+    { text: "⬅️ Arxivdan chiqish", callback_data: "close_archive" }
+  ]);
+
   return rows;
 }
 
@@ -368,6 +373,10 @@ bot.on("callback_query", async (q) => {
       }
     );
 
+    return bot.answerCallbackQuery(q.id);
+  }
+  if (data === "close_archive") {
+    bot.deleteMessage(chatId, q.message.message_id);
     return bot.answerCallbackQuery(q.id);
   }
 });

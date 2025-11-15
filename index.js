@@ -381,7 +381,7 @@ bot.on("callback_query", async (q) => {
 // Agar vaqtni test uchun o‘zgartirmoqchi bo‘lsang,
 // faqat shu qatorni almashtirasan.
 
-schedule.scheduleJob("0 40 21 * * *", () => {
+schedule.scheduleJob("0 0 5 * * *", () => {
   const now = new Date();
   console.log("⏰ Kunlik post vaqti:", now.toISOString());
   sendDailyPost(CHANNEL_ID, now);

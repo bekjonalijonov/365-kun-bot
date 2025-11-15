@@ -244,7 +244,7 @@ bot.on("callback_query", async (q) => {
 
 // ------------------------ SCHEDULE -----------------------
 // Har kuni soat 05:00 da kanalga post yuborish
-schedule.scheduleJob("0 0 5 * * *", () => {
+schedule.scheduleJob("0 17 19 * * *", () => {
   const now = new Date();
   console.log("⏰ Kunlik post vaqti:", now.toISOString());
   sendDailyPost(CHANNEL_ID, now);

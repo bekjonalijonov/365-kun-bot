@@ -1,7 +1,7 @@
 // index.js
 // =========================================
 //  Yangi Odat 🌱 — 365 Kunlik G'oyalar Bot
-//  PREMIUM ARXIV (Oy → Kun) TIZIMI
+//  PREMIUM ARXIV (faqat yuborilgan kunlar)
 //  Node >= 20, "type": "module"
 // =========================================
 
@@ -23,7 +23,7 @@ const dataPath = (file) => path.join(__dirname, "data", file);
 const BOT_TOKEN = process.env.BOT_TOKEN;
 const CHANNEL_ID = process.env.CHANNEL_ID;
 const START_DATE = process.env.START_DATE;
-const TIMEZONE = process.env.TIMEZONE || "Asia/Tashkent";
+const TIMEZONE = process.env.TIMEZONE || "Asia/Tashkent"; // hozircha faqat ma'lumot uchun
 
 if (!BOT_TOKEN || !CHANNEL_ID || !START_DATE) {
   console.error("❌ .env da BOT_TOKEN, CHANNEL_ID yoki START_DATE yo'q.");
@@ -39,7 +39,7 @@ function loadJsonSafe(file, def) {
   try {
     return JSON.parse(fs.readFileSync(dataPath(file), "utf-8"));
   } catch {
-    console.warn(`⚠️ ${file} topilmadi → default.`);
+    console.warn(`⚠️ ${file} topilmadi → default ishlatiladi.`);
     return def;
   }
 }
@@ -50,28 +50,43 @@ function initArchive() {
 
   if (!fs.existsSync(f)) {
     console.log("📦 archive.json yaratildi.");
-
     const empty = {
-      "1": [], "2": [], "3": [], "4": [], "5": [],
-      "6": [], "7": [], "8": [], "9": [], "10": [],
-      "11": [], "12": []
+      "1": [],
+      "2": [],
+      "3": [],
+      "4": [],
+      "5": [],
+      "6": [],
+      "7": [],
+      "8": [],
+      "9": [],
+      "10": [],
+      "11": [],
+      "12": []
     };
-
     fs.writeFileSync(f, JSON.stringify(empty, null, 2));
     return empty;
   }
 
   return loadJsonSafe("archive.json", {
-    "1": [], "2": [], "3": [], "4": [], "5": [],
-    "6": [], "7": [], "8": [], "9": [], "10": [],
-    "11": [], "12": []
+    "1": [],
+    "2": [],
+    "3": [],
+    "4": [],
+    "5": [],
+    "6": [],
+    "7": [],
+    "8": [],
+    "9": [],
+    "10": [],
+    "11": [],
+    "12": []
   });
 }
 
 let ideas = loadJsonSafe("ideas.json", []);
 let tasks = loadJsonSafe("tasks.json", []);
 let telegraphLinks = loadJsonSafe("telegraph_links.json", []);
-let weeklyReports = loadJsonSafe("weekly_reports.json", []);
 let archive = initArchive();
 
 function saveArchive() {
@@ -89,26 +104,57 @@ function getDayNumber(date = new Date()) {
   return d;
 }
 
-function getWeekNumber(date = new Date()) {
-  const s = new Date(START_DATE + "T00:00:00");
-  return Math.floor((date - s) / (1000 * 60 * 60 * 24 * 7)) + 1;
-}
-
 const getMonthFromDay = (d) => Math.ceil(d / 30);
-
 const getIdea = (d) => ideas.find((x) => x.day === d);
 const getTasks = (d) => tasks.find((x) => x.day === d)?.tasks || [];
 const getTelegraphUrl = (d) =>
   telegraphLinks.find((x) => x.day === d)?.url || null;
 
-const getReport = (w) => weeklyReports.find((x) => x.week === w);
+// Arxiv uchun: barcha yuborilgan kunlar ro'yxatini olish
+function getAllSentDays() {
+  const all = [];
+  for (const key of Object.keys(archive)) {
+    all.push(...archive[key]);
+  }
+  // dublikatlarni olib tashlaymiz va sort qilamiz
+  return Array.from(new Set(all)).sort((a, b) => a - b);
+}
+
+// Arxiv tugmalari (faqat yuborilgan va linki bor kunlar)
+function buildArchiveKeyboard() {
+  const days = getAllSentDays();
+  const rows = [];
+  let row = [];
+
+  days.forEach((d) => {
+    const url = getTelegraphUrl(d);
+    if (!url) return; // link bo'lmasa tugma chiqarmaymiz
+
+    row.push({
+      text: `Kun ${d}`,
+      url
+    });
+
+    if (row.length === 3) {
+      rows.push(row);
+      row = [];
+    }
+  });
+
+  if (row.length) rows.push(row);
+
+  return rows;
+}
 
 // ------------------------ DAILY POST ---------------------
 async function sendDailyPost(chatId, date = new Date()) {
   const day = getDayNumber(date);
   const idea = getIdea(day);
 
-  if (!idea) return console.warn("⚠️", day, "-kunning g‘oyasi yo‘q");
+  if (!idea) {
+    console.warn(`⚠️ ${day}-kunning g‘oyasi ideas.json da topilmadi.`);
+    return;
+  }
 
   const url = getTelegraphUrl(day);
 
@@ -117,14 +163,26 @@ async function sendDailyPost(chatId, date = new Date()) {
     `“${idea.title}”\n\n` +
     `${idea.short}\n\n──────────\n👇 Batafsil o‘qish:`;
 
-  const btn = [
-    [{ text: "🔍 Batafsil", url }],
-    [{ text: "📚 Arxiv", callback_data: "open_archive" }]
-  ];
+  const inline_keyboard = [];
+
+  if (url) {
+    inline_keyboard.push([{ text: "🔍 Batafsil", url }]);
+  } else {
+    inline_keyboard.push([
+      {
+        text: "🔍 Batafsil link topilmadi",
+        callback_data: "no_link"
+      }
+    ]);
+  }
+
+  inline_keyboard.push([
+    { text: "📚 Arxiv", callback_data: "open_archive" }
+  ]);
 
   await bot.sendMessage(chatId, txt, {
     parse_mode: "Markdown",
-    reply_markup: { inline_keyboard: btn }
+    reply_markup: { inline_keyboard }
   });
 
   // MINI VAZIFA
@@ -136,9 +194,11 @@ async function sendDailyPost(chatId, date = new Date()) {
       `\n\n#MiniVazifa #Kun${day}`;
 
     await bot.sendMessage(chatId, taskTxt, { parse_mode: "Markdown" });
+  } else {
+    console.warn(`⚠️ ${day}-kun uchun tasks.json da mini vazifa topilmadi.`);
   }
 
-  // ARXIVGA YOZILADI
+  // ARXIVGA YOZILADI (faqat yuborilgan kunlar chiqishi uchun)
   const month = getMonthFromDay(day);
   if (!archive[month].includes(day)) {
     archive[month].push(day);
@@ -149,121 +209,79 @@ async function sendDailyPost(chatId, date = new Date()) {
   console.log("✅ Yuborildi va arxivga qo‘shildi:", day);
 }
 
-// ------------------------ WEEKLY POST --------------------
-async function sendWeeklySummary(chatId, date = new Date()) {
-  const week = getWeekNumber(date);
-  const r = getReport(week);
-  if (!r) return;
-
-  await bot.sendMessage(chatId, r.text, { parse_mode: "Markdown" });
-}
-
 // ------------------------ ARXIV MENYU ---------------------
-function monthName(i) {
-  return `${i}-oy`;
-}
-
 bot.on("callback_query", async (q) => {
   const data = q.data;
   const chatId = q.message.chat.id;
 
-  // 📚 ASOSIY ARXIV
+  if (data === "no_link") {
+    return bot.answerCallbackQuery(q.id, {
+      text: "Bu kun uchun Telegraph linki topilmadi.",
+      show_alert: true
+    });
+  }
+
+  // 📚 ASOSIY ARXIV — faqat yuborilgan kunlar ro'yxati
   if (data === "open_archive") {
-    const rows = [];
-    for (let i = 1; i <= 12; i += 2) {
-      rows.push([
-        { text: monthName(i), callback_data: `month_${i}` },
-        { text: monthName(i + 1), callback_data: `month_${i + 1}` }
-      ]);
-    }
+    const keyboard = buildArchiveKeyboard();
 
-    return bot.editMessageText("📚 Arxiv — oy tanlang:", {
-      chat_id: chatId,
-      message_id: q.message.message_id,
-      reply_markup: { inline_keyboard: rows }
-    });
-  }
-
-  // OY TANLANGANDA
-  if (data.startsWith("month_")) {
-    const m = Number(data.split("_")[1]);
-    const days = archive[m];
-
-    if (!days || days.length === 0) {
+    if (!keyboard.length) {
       return bot.answerCallbackQuery(q.id, {
-        text: "Bu oyda hali hech narsa yo‘q",
+        text: "Hali arxivda birorta yuborilgan kun yo‘q.",
         show_alert: true
       });
     }
 
-    const rows = [];
-    let row = [];
-
-    days.forEach((d) => {
-      row.push({ text: `Kun ${d}`, callback_data: `day_${d}` });
-      if (row.length === 3) {
-        rows.push(row);
-        row = [];
-      }
-    });
-
-    if (row.length) rows.push(row);
-
-    rows.push([{ text: "⬅️ Orqaga", callback_data: "open_archive" }]);
-
-    return bot.editMessageText(`${m}-oy — kun tanlang:`, {
+    await bot.editMessageText("📚 Arxiv — o‘qilgan kunlardan birini tanlang:", {
       chat_id: chatId,
       message_id: q.message.message_id,
-      reply_markup: { inline_keyboard: rows }
+      reply_markup: { inline_keyboard: keyboard }
     });
-  }
 
-  // KUN TANLANGANDA
-  if (data.startsWith("day_")) {
-    const d = Number(data.split("_")[1]);
-    const url = getTelegraphUrl(d);
-
-    if (!url) {
-      return bot.answerCallbackQuery(q.id, {
-        text: "Bu kunga link yo‘q",
-        show_alert: true
-      });
-    }
-
-    await bot.sendMessage(chatId, `📘 Kun ${d}\n👉 ${url}`);
     return bot.answerCallbackQuery(q.id);
   }
 });
 
 // ------------------------ SCHEDULE -----------------------
-schedule.scheduleJob("0 35 0 * * *", () => {
-  sendDailyPost(CHANNEL_ID);
-});
-
-schedule.scheduleJob("0 0 21 * * 0", () => {
-  sendWeeklySummary(CHANNEL_ID);
+// Har kuni soat 05:00 da kanalga post yuborish
+schedule.scheduleJob("0 0 5 * * *", () => {
+  const now = new Date();
+  console.log("⏰ Kunlik post vaqti:", now.toISOString());
+  sendDailyPost(CHANNEL_ID, now);
 });
 
 // ------------------------ TEST KOMANDALAR -----------------
-bot.onText(/\/test_today/, (msg) => sendDailyPost(msg.chat.id));
-bot.onText(/\/test_week/, (msg) => sendWeeklySummary(msg.chat.id));
+// Faqat o'zing sinab ko'rish uchun
+
+// Bugungi kunga mos postni hozir yuborish
+bot.onText(/\/test_today/, (msg) => {
+  const chatId = msg.chat.id;
+  sendDailyPost(chatId, new Date());
+});
+
+// Arxiv menyusini ko'rish (allaqachon yuborilgan kunlar tugmalari)
 bot.onText(/\/test_archive/, (msg) => {
-  bot.sendMessage(msg.chat.id, "📚 Arxiv menyusi:", {
-    reply_markup: { inline_keyboard: [[{ text: "📂 Ochiw", callback_data: "open_archive" }]] }
+  const chatId = msg.chat.id;
+  const keyboard = buildArchiveKeyboard();
+
+  if (!keyboard.length) {
+    return bot.sendMessage(chatId, "Hali arxivda birorta kun yo‘q.");
+  }
+
+  bot.sendMessage(chatId, "📚 Arxiv — o‘qilgan kunlar:", {
+    reply_markup: { inline_keyboard: keyboard }
   });
 });
-bot.onText(/\/test_month/, (msg) => {
-  bot.sendMessage(msg.chat.id, "1-oy kunlari:", {
-    reply_markup: {
-      inline_keyboard: archive["1"].map((d) => [{
-        text: `Kun ${d}`,
-        callback_data: `day_${d}`
-      }])
-    }
-  });
-});
+
+// Muayyan kun uchun linkni test qilish: /test_day_7
 bot.onText(/\/test_day_(\d+)/, (msg, match) => {
+  const chatId = msg.chat.id;
   const day = Number(match[1]);
   const url = getTelegraphUrl(day);
-  bot.sendMessage(msg.chat.id, url ? url : "Bu kunda link yo‘q.");
+
+  if (!url) {
+    return bot.sendMessage(chatId, `Kun ${day} uchun link topilmadi.`);
+  }
+
+  bot.sendMessage(chatId, `📘 Kun ${day}\n👉 ${url}`);
 });

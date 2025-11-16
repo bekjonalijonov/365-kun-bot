@@ -45,15 +45,14 @@ function loadJsonSafe(file, def) {
 }
 
 // ------------------------ DATA LOAD ----------------------
-let ideas = loadJsonSafe("ideas.json", []);                // { day, title, short }
-let tasks = loadJsonSafe("tasks.json", []);                // { day, tasks: [] }
-let telegraphLinks = loadJsonSafe("telegraph_links.json", []); // { day, url }
+let ideas = loadJsonSafe("ideas.json", []);               
+let tasks = loadJsonSafe("tasks.json", []);               
+let telegraphLinks = loadJsonSafe("telegraph_links.json", []); 
 
 // ------------------------ ARCHIVE INIT -------------------
 function initArchive() {
   const filePath = dataPath("archive.json");
 
-  // Yangi bo'lsa, toza 12 oylik struktura
   if (!fs.existsSync(filePath)) {
     console.log("📦 archive.json yaratildi (yangi).");
     const empty = {
@@ -65,7 +64,6 @@ function initArchive() {
     return empty;
   }
 
-  // Eski faylni o‘qiymiz
   const loaded = loadJsonSafe("archive.json", {
     "1": [], "2": [], "3": [], "4": [],
     "5": [], "6": [], "7": [], "8": [],
@@ -77,17 +75,15 @@ function initArchive() {
 
 let archive = initArchive();
 
-// Archivni diskka saqlash
 function saveArchive() {
   fs.writeFileSync(dataPath("archive.json"), JSON.stringify(archive, null, 2));
 }
 
 // ------------------------ DAY / MONTH HELPERS ------------
-// START_DATE dan beri nechanchi kunligini hisoblab beradi
 function getDayNumber(date = new Date()) {
   const start = new Date(START_DATE + "T00:00:00");
   const diffMs = date.getTime() - start.getTime();
-  let d = Math.floor(diffMs / 86400000) + 1; // 1 kun = 86400000 ms
+  let d = Math.floor(diffMs / 86400000) + 1;
 
   if (d < 1) d = 1;
   if (d > 365) d = ((d - 1) % 365) + 1;
@@ -95,19 +91,14 @@ function getDayNumber(date = new Date()) {
   return d;
 }
 
-// Kun raqamidan oy raqamini topish (1-30 → 1-oy, 31-60 → 2-oy, ...)
 const getMonthFromDay = (d) => Math.ceil(d / 30);
 
-// JSON helperlar
 const getIdea = (d) => ideas.find((x) => x.day === d);
 const getTasks = (d) => tasks.find((x) => x.day === d)?.tasks || [];
 const getTelegraphUrl = (d) =>
   telegraphLinks.find((x) => x.day === d)?.url || null;
 
 // ------------------------ ARCHIVE NORMALIZATSIYA --------
-// Eski archive.json ichida ortiqcha kunlar bo‘lsa (masalan 1-kunda 3 kun yozib qo‘yilgan bo‘lsa)
-// – START_DATE va bugungi kunga qarab filtrlaymiz.
-// – faqat Telegraph linki bor va bugungi kungacha bo‘lgan kunlar qoladi.
 function normalizeArchive() {
   const today = new Date();
   const currentDay = getDayNumber(today);
@@ -121,7 +112,6 @@ function normalizeArchive() {
     const key = String(m);
     const arr = archive[key] || [];
     archive[key] = arr.filter((d) => {
-      // 1..365 oraliqda, bugungi kungacha, va telegraph linki bor bo‘lsin
       return (
         typeof d === "number" &&
         d >= 1 &&
@@ -137,31 +127,14 @@ function normalizeArchive() {
 normalizeArchive();
 
 // ------------------------ ARXIV HELPERS ------------------
-// Hamma oylar bo‘yicha yuborilgan kunlar
-function getAllSentDays() {
-  const all = [];
-  for (let m = 1; m <= 12; m++) {
-    const key = String(m);
-    if (Array.isArray(archive[key])) {
-      all.push(...archive[key]);
-    }
-  }
-  return [...new Set(all)].sort((a, b) => a - b);
-}
-
-// Qaysi oylar bor: kamida bitta kuni yuborilgan oylar
 function getActiveMonths() {
   const months = [];
   for (let m = 1; m <= 12; m++) {
-    const key = String(m);
-    if (archive[key] && archive[key].length > 0) {
-      months.push(m);
-    }
+    if (archive[String(m)]?.length > 0) months.push(m);
   }
-  return months.sort((a, b) => a - b);
+  return months;
 }
 
-// Oy tanlash menyusi (1-oy, 2-oy,...)
 function buildMonthKeyboard() {
   const months = getActiveMonths();
   const rows = [];
@@ -181,7 +154,6 @@ function buildMonthKeyboard() {
 
   if (row.length) rows.push(row);
 
-  // 🔥 YANGI QO‘SHILDI — Arxivdan chiqish
   rows.push([
     { text: "⬅️ Arxivdan chiqish", callback_data: "close_archive" }
   ]);
@@ -189,7 +161,6 @@ function buildMonthKeyboard() {
   return rows;
 }
 
-// Berilgan oy ichidagi kunlar (faqat yuborilganlar)
 function buildDaysKeyboardForMonth(month) {
   const key = String(month);
   const days = (archive[key] || []).slice().sort((a, b) => a - b);
@@ -198,14 +169,11 @@ function buildDaysKeyboardForMonth(month) {
 
   days.forEach((d) => {
     const url = getTelegraphUrl(d);
-    if (!url) return; // link bo‘lmasa tugma chiqmasin
+    if (!url) return;
 
-    row.push({
-      text: `Kun ${d}`,
-      url
-    });
+    row.push({ text: `Kun ${d}`, url });
 
-    if (row.length === 4) { // bir qatorga 4ta tugma
+    if (row.length === 4) {
       rows.push(row);
       row = [];
     }
@@ -213,7 +181,6 @@ function buildDaysKeyboardForMonth(month) {
 
   if (row.length) rows.push(row);
 
-  // Pastga orqaga tugmasi
   rows.push([
     { text: "⬅️ Oylarga qaytish", callback_data: "back_to_months" }
   ]);
@@ -226,10 +193,7 @@ async function sendDailyPost(chatId, date = new Date()) {
   const day = getDayNumber(date);
   const idea = getIdea(day);
 
-  if (!idea) {
-    console.warn(`⚠️ ${day}-kunning g‘oyasi ideas.json da topilmadi.`);
-    return;
-  }
+  if (!idea) return;
 
   const url = getTelegraphUrl(day);
 
@@ -246,10 +210,7 @@ async function sendDailyPost(chatId, date = new Date()) {
     inline_keyboard.push([{ text: "🔍 Batafsil", url }]);
   } else {
     inline_keyboard.push([
-      {
-        text: "🔍 Batafsil link topilmadi",
-        callback_data: "no_link"
-      }
+      { text: "🔍 Batafsil link topilmadi", callback_data: "no_link" }
     ]);
   }
 
@@ -262,7 +223,6 @@ async function sendDailyPost(chatId, date = new Date()) {
     reply_markup: { inline_keyboard }
   });
 
-  // MINI VAZIFA
   const t = getTasks(day);
   if (t.length > 0) {
     const taskTxt =
@@ -272,34 +232,27 @@ async function sendDailyPost(chatId, date = new Date()) {
       `\n\n#MiniVazifa #Kun${day}`;
 
     await bot.sendMessage(chatId, taskTxt, { parse_mode: "Markdown" });
-  } else {
-    console.warn(`⚠️ ${day}-kun uchun tasks.json da mini vazifa topilmadi.`);
   }
 
-  // ARXIVGA YOZILADI (faqat yuborilgan kunlar)
   const month = getMonthFromDay(day);
   const key = String(month);
-
-  if (!Array.isArray(archive[key])) {
-    archive[key] = [];
-  }
+  if (!archive[key]) archive[key] = [];
 
   if (!archive[key].includes(day)) {
     archive[key].push(day);
     archive[key].sort((a, b) => a - b);
     saveArchive();
   }
-
-  console.log("✅ Yuborildi va arxivga qo‘shildi:", day);
 }
 
-// ------------------------ CALLBACKLAR (ARXIV) ------------
+// ------------------------ CALLBACKLAR ------------------
 
+// ❗ ENG MUHIM TUZATISH — bu yerda chatId = q.from.id bo‘ladi
 bot.on("callback_query", async (q) => {
   const data = q.data;
-  const chatId = q.message.chat.id;
+  const userId = q.from.id;   // <<< faqat shaxsiyga yuboriladi
 
-  // Batafsil link yo‘q bo‘lsa
+  // no_link
   if (data === "no_link") {
     return bot.answerCallbackQuery(q.id, {
       text: "Bu kun uchun Telegraph linki topilmadi.",
@@ -307,131 +260,75 @@ bot.on("callback_query", async (q) => {
     });
   }
 
-  // 📚 ARXIVNI OCHISH — oylar menyusi
+  // OCHISH
   if (data === "open_archive") {
     const monthKeyboard = buildMonthKeyboard();
 
-    if (!monthKeyboard.length) {
-      return bot.answerCallbackQuery(q.id, {
-        text: "Hali arxivda birorta kun yo‘q.",
-        show_alert: true
-      });
-    }
-
     await bot.sendMessage(
-      chatId,
+      userId,
       "📚 Arxiv — qaysi oy bo‘yicha o‘qishni xohlaysiz?",
       {
-        reply_markup: {
-          inline_keyboard: monthKeyboard
-        }
+        reply_markup: { inline_keyboard: monthKeyboard }
       }
     );
 
     return bot.answerCallbackQuery(q.id);
   }
 
-  // Oy tanlandi: month_X
+  // OY TANLANDI
   if (data.startsWith("month_")) {
     const month = Number(data.split("_")[1]);
     const daysKeyboard = buildDaysKeyboardForMonth(month);
 
-    if (daysKeyboard.length === 1) {
-      // faqat orqaga tugmasi bo‘lsa
-      return bot.answerCallbackQuery(q.id, {
-        text: "Bu oy bo‘yicha hali o‘qilgan kunlar yo‘q.",
-        show_alert: true
-      });
-    }
-
-    await bot.editMessageText(
+    await bot.sendMessage(
+      userId,
       `📚 ${month}-oy — o‘qimoqchi bo‘lgan kuningizni tanlang:`,
       {
-        chat_id: chatId,
-        message_id: q.message.message_id,
-        reply_markup: {
-          inline_keyboard: daysKeyboard
-        }
+        reply_markup: { inline_keyboard: daysKeyboard }
       }
     );
 
     return bot.answerCallbackQuery(q.id);
   }
 
-  // Oylarga qaytish
+  // ORQAGA
   if (data === "back_to_months") {
     const monthKeyboard = buildMonthKeyboard();
 
-    await bot.editMessageText(
+    await bot.sendMessage(
+      userId,
       "📚 Arxiv — qaysi oy bo‘yicha o‘qishni xohlaysiz?",
       {
-        chat_id: chatId,
-        message_id: q.message.message_id,
-        reply_markup: {
-          inline_keyboard: monthKeyboard
-        }
+        reply_markup: { inline_keyboard: monthKeyboard }
       }
     );
 
     return bot.answerCallbackQuery(q.id);
   }
+
   if (data === "close_archive") {
-    bot.deleteMessage(chatId, q.message.message_id);
     return bot.answerCallbackQuery(q.id);
   }
 });
 
 // ------------------------ SCHEDULE -----------------------
-// Har kuni soat 05:00 da kanalga post yuborish
-// CRON FORMAT: "sekund minut soat * * *"
-// Masalan:
-//   "0 0 5 * * *"   →  har kuni 05:00
-//   "0 16 19 * * *" →  har kuni 19:16 (test uchun)
-// Agar vaqtni test uchun o‘zgartirmoqchi bo‘lsang,
-// faqat shu qatorni almashtirasan.
-
-schedule.scheduleJob("0 0 5 * * *", () => {
-  const now = new Date();
-  console.log("⏰ Kunlik post vaqti:", now.toISOString());
-  sendDailyPost(CHANNEL_ID, now);
+schedule.scheduleJob("0 0 0 * * *", () => {
+  sendDailyPost(CHANNEL_ID, new Date());
 });
 
 // ------------------------ TEST KOMANDALAR ----------------
-// Bugungi kunga mos postni hozir yuborish
 bot.onText(/\/test_today/, (msg) => {
-  const chatId = msg.chat.id;
-  sendDailyPost(chatId, new Date());
+  sendDailyPost(msg.chat.id, new Date());
 });
 
-// Arxiv oy menyusini test qilish
 bot.onText(/\/test_archive/, (msg) => {
-  const chatId = msg.chat.id;
   const monthKeyboard = buildMonthKeyboard();
-
-  if (!monthKeyboard.length) {
-    return bot.sendMessage(chatId, "📚 Arxiv hozircha bo‘sh.");
-  }
-
-  bot.sendMessage(
-    chatId,
-    "📚 Arxiv (test) — qaysi oy bo‘yicha o‘qishni xohlaysiz?",
-    {
-      reply_markup: {
-        inline_keyboard: monthKeyboard
-      }
-    }
-  );
+  bot.sendMessage(msg.chat.id, "📚 Arxiv (test) — qaysi oy?", {
+    reply_markup: { inline_keyboard: monthKeyboard }
+  });
 });
 
-// Muayyan kun uchun linkni tekshirish: /test_day_7
 bot.onText(/\/test_day_(\d+)/, (msg, match) => {
-  const chatId = msg.chat.id;
-  const day = Number(match[1]);
-  const url = getTelegraphUrl(day);
-
-  if (!url) {
-    return bot.sendMessage(chatId, `Kun ${day} uchun Telegraph linki topilmadi.`);
-  }
-
-  bot.sendMessage(chatId, `📘 Kun ${day}\n👉 ${url}`);
+  const url = getTelegraphUrl(Number(match[1]));
+  bot.sendMessage(msg.chat.id, `📘 Kun ${match[1]}\n👉 ${url || "link yo‘q"}`);
 });

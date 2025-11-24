@@ -46,14 +46,15 @@ let ideas = loadJsonSafe("ideas.json", []);
 let tasks = loadJsonSafe("tasks.json", []);
 let telegraphLinks = loadJsonSafe("telegraph_links.json", []);
 
-// 🔥 YANGI QO‘SHILDI — Necha odam o‘qiganini saqlash
+// 🔥 Necha odam o‘qiganini saqlash
 let readCount = loadJsonSafe("read_count.json", {});
 function saveReadCount() {
   fs.writeFileSync(dataPath("read_count.json"), JSON.stringify(readCount, null, 2));
 }
 
-// 🔥 YANGI: Har bir vazifa uchun bajarganlar (task_done.json)
-let taskDone = loadJsonSafe("task_done.json", {}); // strukturasi: { "25": { "0": ["123","456"], "1": ["123"] } }
+// 🔥 Har bir mini vazifani bajarganlar
+// FORMAT: { "25": { "0": ["123","456"], "1":["789"] } }
+let taskDone = loadJsonSafe("task_done.json", {});
 function saveTaskDone() {
   fs.writeFileSync(dataPath("task_done.json"), JSON.stringify(taskDone, null, 2));
 }
@@ -69,8 +70,7 @@ function getDayNumber(date = new Date()) {
 }
 
 const getIdea = (d) => ideas.find((x) => x.day === d);
-const getTasksList = (d) =>
-  tasks.find((x) => x.day === d)?.tasks || [];
+const getTasksList = (d) => tasks.find((x) => x.day === d)?.tasks || [];
 const getTelegraphUrl = (d) =>
   telegraphLinks.find((x) => x.day === d)?.url || null;
 
@@ -99,7 +99,7 @@ async function sendDailyPost(chatId, date = new Date()) {
     inline_keyboard.push([{ text: "🔍 Batafsil", url }]);
   }
 
-  // 🔥 YANGI “O‘qidim 👍” TUGMASI
+  // O‘qidim tugmasi
   inline_keyboard.push([
     {
       text: `O‘qidim 👍 (${count} ta)`,
@@ -115,18 +115,11 @@ async function sendDailyPost(chatId, date = new Date()) {
   // MINI VAZIFA
   const taskArr = getTasksList(day);
   if (taskArr.length) {
-    // init structure for this day if needed
-    if (!taskDone[day]) {
-      taskDone[day] = {}; // will hold arrays per task index
-    }
+    if (!taskDone[day]) taskDone[day] = {};
 
-    // ensure each task index has an array
     for (let i = 0; i < taskArr.length; i++) {
-      if (!Array.isArray(taskDone[day][i])) {
-        taskDone[day][i] = [];
-      }
+      if (!Array.isArray(taskDone[day][i])) taskDone[day][i] = [];
     }
-    // save after possible init
     saveTaskDone();
 
     const taskTxt =
@@ -134,12 +127,12 @@ async function sendDailyPost(chatId, date = new Date()) {
       taskArr.map((v, i) => `${i + 1}) ${v}`).join("\n") +
       `\n\n#MiniVazifa #Kun${day}`;
 
-    // Build keyboard: each row — vazifa nomi (Variant B) + count
-    const taskKeyboard = taskArr.map((taskName, index) => {
-      const cnt = (taskDone[day] && Array.isArray(taskDone[day][index])) ? taskDone[day][index].length : 0;
+    // 🔥 Tugmalar: 1-ni bajardim, 2-ni bajardim, 3-ni bajardim
+    const taskKeyboard = taskArr.map((_, index) => {
+      const cnt = taskDone[day][index].length;
       return [
         {
-          text: `${taskName} (${cnt} ta)`,
+          text: `${index + 1}-ni bajardim (${cnt} ta)`,
           callback_data: `task_${day}_${index}`
         }
       ];
@@ -155,19 +148,14 @@ async function sendDailyPost(chatId, date = new Date()) {
 // ------------------------ CALLBACK QUERY ------------------
 bot.on("callback_query", async (q) => {
   const data = q.data;
-  const userId = q.from.id;
-  const userIdStr = String(userId);
+  const userId = String(q.from.id);
 
-  // ---------------- READ BUTTON ----------------
+  // ---------------- O‘QIDIM ----------------
   if (data.startsWith("read_")) {
     const day = Number(data.split("_")[1]);
 
-    // Agar bu kun hali JSON ichida bo‘lmasa → yaratamiz
-    if (!readCount[day]) {
-      readCount[day] = { count: 0, users: [] };
-    }
+    if (!readCount[day]) readCount[day] = { count: 0, users: [] };
 
-    // Foydalanuvchi allaqachon bosgan bo‘lsa → qo‘shilmaydi
     if (readCount[day].users.includes(userId)) {
       return bot.answerCallbackQuery(q.id, {
         text: "Siz allaqachon o‘qigansiz 👍",
@@ -175,24 +163,18 @@ bot.on("callback_query", async (q) => {
       });
     }
 
-    // Yangidan bosgan bo‘lsa → +1
     readCount[day].users.push(userId);
-    readCount[day].count = (readCount[day].count || 0) + 1;
+    readCount[day].count++;
     saveReadCount();
 
     const newCount = readCount[day].count;
 
-    // Tugmani yangilaymiz
     try {
       await bot.editMessageReplyMarkup(
         {
           inline_keyboard: [
-            [
-              { text: "🔍 Batafsil", url: getTelegraphUrl(day) }
-            ],
-            [
-              { text: `O‘qidim 👍 (${newCount} ta)`, callback_data: `read_${day}` }
-            ]
+            [{ text: "🔍 Batafsil", url: getTelegraphUrl(day) }],
+            [{ text: `O‘qidim 👍 (${newCount} ta)`, callback_data: `read_${day}` }]
           ]
         },
         {
@@ -200,55 +182,39 @@ bot.on("callback_query", async (q) => {
           message_id: q.message.message_id
         }
       );
-    } catch (e) {
-      console.log("editMessageReplyMarkup xato:", e.message);
-    }
+    } catch (e) {}
 
-    return bot.answerCallbackQuery(q.id, {
-      text: "Rahmat! 😊",
-      show_alert: false
-    });
+    return bot.answerCallbackQuery(q.id, { text: "Rahmat! 😊" });
   }
 
-  // -------- BAJARDIM (har bir vazifa) ----------
+  // ---------------- MINI VAZIFA ----------------
   if (data.startsWith("task_")) {
-    // data format: task_<day>_<index>
     const parts = data.split("_");
-    if (parts.length < 3) return bot.answerCallbackQuery(q.id, { text: "Noto'g'ri so'rov", show_alert: true });
-
     const day = Number(parts[1]);
     const index = Number(parts[2]);
 
-    // init structures if missing
     if (!taskDone[day]) taskDone[day] = {};
     if (!Array.isArray(taskDone[day][index])) taskDone[day][index] = [];
 
-    // Check if user already clicked
-    if (taskDone[day][index].includes(userIdStr)) {
+    if (taskDone[day][index].includes(userId)) {
       return bot.answerCallbackQuery(q.id, {
         text: "Bu vazifani allaqachon bajargansiz ✅",
         show_alert: true
       });
     }
 
-    // Add user
-    taskDone[day][index].push(userIdStr);
+    taskDone[day][index].push(userId);
     saveTaskDone();
 
-    // Rebuild keyboard for the task message (only task message will be updated)
+    // Tugmani yangilash
     try {
-      const taskArr = getTasksList(day) || [];
-      // Ensure arrays exist for other tasks (safety)
-      if (!taskDone[day]) taskDone[day] = {};
-      for (let i = 0; i < taskArr.length; i++) {
-        if (!Array.isArray(taskDone[day][i])) taskDone[day][i] = [];
-      }
+      const taskArr = getTasksList(day);
 
-      const newKeyboard = taskArr.map((taskName, i) => {
-        const cnt = (taskDone[day][i] || []).length;
+      const newKeyboard = taskArr.map((_, i) => {
+        const cnt = taskDone[day][i].length;
         return [
           {
-            text: `${taskName} (${cnt} ta)`,
+            text: `${i + 1}-ni bajardim (${cnt} ta)`,
             callback_data: `task_${day}_${i}`
           }
         ];
@@ -261,19 +227,16 @@ bot.on("callback_query", async (q) => {
           message_id: q.message.message_id
         }
       );
-    } catch (e) {
-      console.log("task button edit error:", e?.message || e);
-    }
+    } catch (e) {}
 
     return bot.answerCallbackQuery(q.id, {
-      text: "Zo‘r! Vazifa bajarildi! 🚀",
-      show_alert: false
+      text: "Zo‘r! Vazifa bajarildi! 🚀"
     });
   }
 });
 
 // ------------------------ SCHEDULE -----------------------
-// Har kuni 05:00 da kanalga yuboriladi
+// Har kuni 00:00 da kanalga yuboriladi
 schedule.scheduleJob("0 0 0 * * *", () => {
   const now = new Date();
   console.log("⏰ Kunlik post:", now.toISOString());

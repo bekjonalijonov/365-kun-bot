@@ -125,7 +125,7 @@ async function sendDailyPost(chatId, date = new Date()) {
     const taskTxt =
       `🧠 Bugungi Challenge\n\n` +
       taskArr.map((v, i) => `${i + 1}) ${v}`).join("\n") +
-      `\n\n#40kunlik_odat #Kun${day}`;
+      `\n\n#40kun #Kun${day}`;
 
     // 🔥 Tugmalar: 1-ni bajardim, 2-ni bajardim, 3-ni bajardim
     const taskKeyboard = taskArr.map((_, index) => {

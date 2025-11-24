@@ -88,7 +88,7 @@ async function sendDailyPost(chatId, date = new Date()) {
   const count = readCount[day].count;
 
   const txt =
-    `📘 <b>Kun</b> ${day}/365\n` +
+    `📘 Kun ${day}/365\n` +
     `“${idea?.title || ""}”\n\n` +
     `${idea?.short || ""}\n\n` +
     `👇 Batafsil o‘qish:\n`;
@@ -123,7 +123,7 @@ async function sendDailyPost(chatId, date = new Date()) {
     saveTaskDone();
 
     const taskTxt =
-      `<b>🧠 Bugungi challenge</b> \n\n` +
+      `🧠 Bugungi challenge \n\n` +
       taskArr.map((v, i) => `${i + 1}) ${v}`).join("\n") +
       `\n\n#40kunlik_challenge #Kun${day}`;
 

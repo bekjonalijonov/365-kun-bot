@@ -102,7 +102,7 @@ async function sendDailyPost(chatId, date = new Date()) {
   // O‘qidim tugmasi
   inline_keyboard.push([
     {
-      text: `O‘qidim 👍 (${count} ta odam)`,
+      text: `O‘qidim 👍 (${count} ta)`,
       callback_data: `read_${day}`
     }
   ]);
@@ -125,14 +125,14 @@ async function sendDailyPost(chatId, date = new Date()) {
     const taskTxt =
       `🧠 Bugungi Challenge\n\n` +
       taskArr.map((v, i) => `${i + 1}) ${v}`).join("\n") +
-      `\n\n#MiniVazifa #Kun${day}`;
+      `\n\n#40kunlik_odat #Kun${day}`;
 
     // 🔥 Tugmalar: 1-ni bajardim, 2-ni bajardim, 3-ni bajardim
     const taskKeyboard = taskArr.map((_, index) => {
       const cnt = taskDone[day][index].length;
       return [
         {
-          text: `${index + 1}-ni bajardim (${cnt} ta odam)`,
+          text: `${index + 1}-ni bajardim 🤝 (${cnt} ta)`,
           callback_data: `task_${day}_${index}`
         }
       ];

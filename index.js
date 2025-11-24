@@ -88,8 +88,8 @@ async function sendDailyPost(chatId, date = new Date()) {
   const count = readCount[day].count;
 
   const txt =
-    `<b>📘 Kun ${day}/365</b>\n` +
-    `“<b>${idea?.title || ""}”</b>\n\n` +
+    `📘 <b>Kun</b> ${day}/365\n` +
+    `“${idea?.title || ""}”\n\n` +
     `${idea?.short || ""}\n\n` +
     `👇 Batafsil o‘qish:\n`;
 

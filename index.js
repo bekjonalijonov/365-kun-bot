@@ -52,6 +52,12 @@ function saveReadCount() {
   fs.writeFileSync(dataPath("read_count.json"), JSON.stringify(readCount, null, 2));
 }
 
+// 🔥 YANGI: Har bir vazifa uchun bajarganlar (task_done.json)
+let taskDone = loadJsonSafe("task_done.json", {}); // strukturasi: { "25": { "0": ["123","456"], "1": ["123"] } }
+function saveTaskDone() {
+  fs.writeFileSync(dataPath("task_done.json"), JSON.stringify(taskDone, null, 2));
+}
+
 // ------------------------ DAY CALC -----------------------
 function getDayNumber(date = new Date()) {
   const start = new Date(START_DATE + "T00:00:00");
@@ -83,8 +89,8 @@ async function sendDailyPost(chatId, date = new Date()) {
 
   const txt =
     `📘 Kun ${day}/365\n` +
-    `“${idea.title}”\n\n` +
-    `${idea.short}\n\n` +
+    `“${idea?.title || ""}”\n\n` +
+    `${idea?.short || ""}\n\n` +
     `👇 Batafsil o‘qish:\n`;
 
   const inline_keyboard = [];
@@ -109,12 +115,40 @@ async function sendDailyPost(chatId, date = new Date()) {
   // MINI VAZIFA
   const taskArr = getTasksList(day);
   if (taskArr.length) {
+    // init structure for this day if needed
+    if (!taskDone[day]) {
+      taskDone[day] = {}; // will hold arrays per task index
+    }
+
+    // ensure each task index has an array
+    for (let i = 0; i < taskArr.length; i++) {
+      if (!Array.isArray(taskDone[day][i])) {
+        taskDone[day][i] = [];
+      }
+    }
+    // save after possible init
+    saveTaskDone();
+
     const taskTxt =
       `🧠 Bugungi mini vazifa\n` +
       taskArr.map((v, i) => `${i + 1}) ${v}`).join("\n") +
       `\n\n#MiniVazifa #Kun${day}`;
 
-    await bot.sendMessage(chatId, taskTxt, { parse_mode: "Markdown" });
+    // Build keyboard: each row — vazifa nomi (Variant B) + count
+    const taskKeyboard = taskArr.map((taskName, index) => {
+      const cnt = (taskDone[day] && Array.isArray(taskDone[day][index])) ? taskDone[day][index].length : 0;
+      return [
+        {
+          text: `${taskName} (${cnt} ta)`,
+          callback_data: `task_${day}_${index}`
+        }
+      ];
+    });
+
+    await bot.sendMessage(chatId, taskTxt, {
+      parse_mode: "Markdown",
+      reply_markup: { inline_keyboard: taskKeyboard }
+    });
   }
 }
 
@@ -122,6 +156,7 @@ async function sendDailyPost(chatId, date = new Date()) {
 bot.on("callback_query", async (q) => {
   const data = q.data;
   const userId = q.from.id;
+  const userIdStr = String(userId);
 
   // ---------------- READ BUTTON ----------------
   if (data.startsWith("read_")) {
@@ -142,7 +177,7 @@ bot.on("callback_query", async (q) => {
 
     // Yangidan bosgan bo‘lsa → +1
     readCount[day].users.push(userId);
-    readCount[day].count += 1;
+    readCount[day].count = (readCount[day].count || 0) + 1;
     saveReadCount();
 
     const newCount = readCount[day].count;
@@ -171,6 +206,67 @@ bot.on("callback_query", async (q) => {
 
     return bot.answerCallbackQuery(q.id, {
       text: "Rahmat! 😊",
+      show_alert: false
+    });
+  }
+
+  // -------- BAJARDIM (har bir vazifa) ----------
+  if (data.startsWith("task_")) {
+    // data format: task_<day>_<index>
+    const parts = data.split("_");
+    if (parts.length < 3) return bot.answerCallbackQuery(q.id, { text: "Noto'g'ri so'rov", show_alert: true });
+
+    const day = Number(parts[1]);
+    const index = Number(parts[2]);
+
+    // init structures if missing
+    if (!taskDone[day]) taskDone[day] = {};
+    if (!Array.isArray(taskDone[day][index])) taskDone[day][index] = [];
+
+    // Check if user already clicked
+    if (taskDone[day][index].includes(userIdStr)) {
+      return bot.answerCallbackQuery(q.id, {
+        text: "Bu vazifani allaqachon bajargansiz ✅",
+        show_alert: true
+      });
+    }
+
+    // Add user
+    taskDone[day][index].push(userIdStr);
+    saveTaskDone();
+
+    // Rebuild keyboard for the task message (only task message will be updated)
+    try {
+      const taskArr = getTasksList(day) || [];
+      // Ensure arrays exist for other tasks (safety)
+      if (!taskDone[day]) taskDone[day] = {};
+      for (let i = 0; i < taskArr.length; i++) {
+        if (!Array.isArray(taskDone[day][i])) taskDone[day][i] = [];
+      }
+
+      const newKeyboard = taskArr.map((taskName, i) => {
+        const cnt = (taskDone[day][i] || []).length;
+        return [
+          {
+            text: `${taskName} (${cnt} ta)`,
+            callback_data: `task_${day}_${i}`
+          }
+        ];
+      });
+
+      await bot.editMessageReplyMarkup(
+        { inline_keyboard: newKeyboard },
+        {
+          chat_id: q.message.chat.id,
+          message_id: q.message.message_id
+        }
+      );
+    } catch (e) {
+      console.log("task button edit error:", e?.message || e);
+    }
+
+    return bot.answerCallbackQuery(q.id, {
+      text: "Zo‘r! Vazifa bajarildi! 🚀",
       show_alert: false
     });
   }

@@ -88,8 +88,8 @@ async function sendDailyPost(chatId, date = new Date()) {
   const count = readCount[day].count;
 
   const txt =
-    `📘 Kun ${day}/365\n` +
-    `“${idea?.title || ""}”\n\n` +
+    `<b>📘 Kun ${day}/365</b>\n` +
+    `“<b>${idea?.title || ""}”</b>\n\n` +
     `${idea?.short || ""}\n\n` +
     `👇 Batafsil o‘qish:\n`;
 
@@ -123,16 +123,16 @@ async function sendDailyPost(chatId, date = new Date()) {
     saveTaskDone();
 
     const taskTxt =
-      `🧠 Bugungi mini vazifa\n` +
+      `<b>🧠 Bugungi challenge</b> \n\n` +
       taskArr.map((v, i) => `${i + 1}) ${v}`).join("\n") +
-      `\n\n#MiniVazifa #Kun${day}`;
+      `\n\n#40kunlik_challenge #Kun${day}`;
 
     // 🔥 Tugmalar: 1-ni bajardim, 2-ni bajardim, 3-ni bajardim
     const taskKeyboard = taskArr.map((_, index) => {
       const cnt = taskDone[day][index].length;
       return [
         {
-          text: `${index + 1}-ni bajardim (${cnt} ta)`,
+          text: `${index + 1}-ni bajardim  🤝(${cnt} ta odam)`,
           callback_data: `task_${day}_${index}`
         }
       ];

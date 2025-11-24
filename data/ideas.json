@@ -1,63 +1,83 @@
 [
   {
     "day": 1,
-    "title": "Qiyin yo'lni tanlagan Yengil hayot",
-    "short": "“Hayotni oson yo‘ldan yashayman” degan odam oxir-oqibat eng qiyin hayotga duch keladi. Ammo “qiyin yo‘lni tanlayman” degan inson kelajakda eng yengil hayotni quradi. Chunki intizom – bugungi mayda vasvasa va qulayliklardan voz kechib, ertangi katta mukofot uchun kurashishdir."
+    "title": "Bir kechada muvaffaqiyatga erishishning 4 ta oqilona usuli",
+    "short": "Yangi odatning eng asosiy jihati bu xabardorlikdir. Agar siz o'zingizning odatlaringizdan xabardor bo'lmasangiz, ularni qanday o'zgartirishni kutishingiz mumkin? Shuning uchun fikr-mulohazalar juda muhim. Tezroq fikr-mulohaza tezroq natijalarga olib keladi."
   },
   {
     "day": 2,
-    "title": "Bir Lahzaning Umrboqiy Tanlovi",
-    "short": "Har bir tanlovimiz bir soniyada qilinadi, ammo uning natijalari butun hayotimizga ta’sir qiladi. Bugungi oddiy qaror — ertangi hayotning poydevori yoki kulfatidir. Shuning uchun har bir mayda tanlov aslida katta yo‘nalishni belgilaydi."
+    "title": "Yaxshi odatlarni shakllantirish uchun hozir qilishingiz mumkin bo'lgan 3 ta oddiy narsa",
+    "short": "Yaxshi odatlarni shakllantirish qiyin bo'lishi mumkin. Bu, ayniqsa, agar siz ular bilan uzoq vaqt qolishni istasangiz, to'g'ri. Yaxshiyamki, yaxshi odatlarni shakllantirish va yomon odatlardan voz kechish uchun foydalanishingiz mumkin bo'lgan bir nechta oddiy strategiyalar mavjud ."
   },
   {
     "day": 3,
-    "title": "Insonni Inson Qiladigan Kuch",
-    "short": "Iroda — hayvon va inson o‘rtasidagi eng katta farqdir. Biz nafaqat istaklarimizga ergashamiz, balki ular ustidan nazorat qila olamiz. Haqiqiy inson — hozirgi zavqdan emas, kelajakdagi yaxshiroq hayotdan kelib chiqib tanlov qiladigan insondir."
+    "title": "Eng muhim ko'nikma",
+    "short": "Daromad o'sishi bo'sh vaqt ko'payishiga, bo'sh vaqt ko'payishi tahlil uchun yanada ko'proq vaqt qolishiga sabab bo'ladi. Natijada bunday odam tengdoshlaridan karrasiga o'tib ketishni boshlaydi. 'Aziz Rahimov inshosi'"
   },
   {
     "day": 4,
-    "title": "Intizomni Osonlashtiradigan Tizimlar",
-    "short": "O‘zini tutib turish intizomdir, lekin o‘zini sinovga qo‘ymaydigan tizim yaratish — bundan ham kuchliroq strategiya. Inson vasvasaga qarshi kurashish o‘rniga, uni oldini olishni o‘rgansa, hayoti ancha yengil bo‘ladi."
+    "title": "Intizomni osonlashtiradigan tizimlar",
+    "short": "O'zini tutib turish intizomdir, lekin o'zini sinovga qo'ymaydigan tizim yaratish — bundan ham kuchliroq strategiya. Inson vasvasaga qarshi kurashish o'rniga, uni oldini olishni o'rgansa, hayoti ancha yengil bo'ladi."
   },
   {
     "day": 5,
-    "title": "O‘zingga Qul Bo‘lmaslik San’ati",
-    "short": "Ko‘pincha biz hayotdagi muammolarimizni boshqalardan ko‘ramiz. Aslida esa insonni eng ko‘p asir qiladigan narsa — o‘zining ichki istaklari, odatlari va bahonalari. O‘zini boshqara olgan odamni esa hech kim boshqara olmaydi."
+    "title": "Qanday qilib (Yo'q) deyish, vasvasaga qarshi turish va sog'liq uchun maqsadlaringizga sodiq qolish",
+    "short": "Keraksiz majburiyatlarga yo'q deb ayting va sizda tiklanish va yoshartirish uchun vaqtingiz bor. Kundalik chalg'itadigan narsalarga yo'q deb ayting va siz uchun muhim bo'lgan narsaga e'tiboringizni qaratish uchun bo'sh joyingiz bor."
   },
   {
     "day": 6,
-    "title": "Superodamlar Yo‘q, Lekin Super O‘sish Borr",
-    "short": "Dunyo atrofimizdagi barcha narsalar — oddiy insonlar tomonidan yaratilgan. Ular bizdan aqlliroq emas edi, faqat harakat qilishni tanlashgan. “Superodamlar” haqidagi afsona — shunchaki afsona. Har qanday katta natija oddiy odamning oddiy, lekin izchil mehnatidan tug‘iladi."
+    "title": "Siz xafa bo'lish uchun yetarlicha yaxshi emassiz",
+    "short": "Boshqacha qilib aytadigan bo'lsak, boshida siz o'zingizni ahmoq, noaniq va malakasiz his qilishingiz  kerak va bu normal holat . Sizning havaskor chiqishingizdan hafsalamiz pir bo'lishi mumkin emas, chunki siz hali professional mahoratini rivojlantirmagansiz, shuning uchun “nima uchun buncha yomon chiqyapti” deb xafa bo'lishga haqqingiz yo'q."
   },
   {
     "day": 7,
-    "title": "Qashshoqlikning Yashirin Solig‘i va Intizom",
-    "short": "Moliyaviy stress insonning fikrlash qobiliyatini, intizomini va kelajakni ko‘ra olish salohiyatini sezilarli darajada pasaytiradi. Qashshoqlik — faqat pul yetishmasligi emas, balki doimiy ruhiy bosimdir. Ammo muammoni tan olish va javobgarlikni o‘z qo‘lingizga olish — aylani buzib chiqishning birinchi qadami."
+    "title": "Qashshoqlikning yashirin solig'i va intizom",
+    "short": "Moliyaviy stress insonning fikrlash qobiliyatini, intizomini va kelajakni ko'ra olish salohiyatini sezilarli darajada pasaytiradi. Qashshoqlik — faqat pul yetishmasligi emas, balki doimiy ruhiy bosimdir. Ammo muammoni tan olish va javobgarlikni o‘z qo‘lingizga olish — aylani buzib chiqishning birinchi qadami."
   },
   {
     "day": 8,
-    "title": "Keraksiz “Zaruriyatlar”dan Xalos Bo‘lish",
-    "short": "Biz ko‘p narsalarni “hayot zaruriyati” deb o‘ylaymiz, lekin aslida ularning aksariyati oddiy odatlanib qolgan hashamatdir. Shuni sinab ko‘rmagunimizcha bilmaymiz: aslida qancha kam narsaga muhtoj ekanimizni. Ba’zan bir narsadan voz kechish — eng katta ozodlikdir."
+    "title": "2025-yilda yaxshiroq odatlar siri.",
+    "short": "Yaxshi niyatdagi rejalar kun o‘tgan sari barbod bo‘ladi. Iroda kuchi bug‘lanadi. Dunyo o‘z talablarini qo‘yadi. Shuning uchun muhim narsalarni birinchi o‘ringa qo‘yish va ularni erta qilishni odat tusiga aylantirish juda muhim. Mukammal yoki ulug‘vor bo‘lishi shart emas. Faqat birinchi bo‘lishi kerak. (Ryan Holidayni 2025-yil uchun inshosi)"
   },
   {
     "day": 9,
-    "title": "Kelajakdagi O‘zingni Himoya Qilish",
-    "short": "Intizomning eng kuchli manbalaridan biri — kelajakdagi o‘zingizga hamdard bo‘lishdir. Kim kelajakdagi o‘zini aniq tasavvur qila olsa, bugungi zavqdan voz kechib, ertangi yaxshiroq hayot uchun qaror qila oladi."
+    "title": "Mutlaq muvaffaqiyat - bu omad. Nisbiy muvaffaqiyat - bu mashaqqatli mehnat.",
+    "short": "Men bu iqtibos buni yaxshi jamlagan deb o'yladim: “Poyga boshlanganidan qancha ko‘p vaqt o‘tsa, boshqalarning oldindan olgan ustunligi shunchalik kam ahamiyatga ega bo‘ladi.” "
   },
   {
     "day": 10,
-    "title": "O'z hikoyangni yoz",
+    "title": "Oʻz hikoyangni yoz.",
     "short": "Intizom — romanga o‘xshaydi: u bir kunda yozilmaydi. Har qanday buyuk natija bitta so‘zdan, bitta kichik odatdan, bitta qadamdan boshlanadi. Kichik o‘zgarishlar yig‘ilib borib, oxirida insonning butun hayotini o‘zgartiradi."
   },
   {
     "day": 11,
-    "title": "Iqtidor yetmaydi, Intizom kerak",
+    "title": "Iqtidor yetmaydi, Intizom kerak!",
     "short": "Iqtidor — yo‘lni osonlashtiradi, ammo intizom — manzilga yetkazadi. Intizomli, mehnatkash odam iste’dodsiz bo‘lsa ham ulkan natijaga erishadi. Iqtidor bo‘lib turib intizomsiz yashagan odam esa oxir-oqibat mag‘lub bo‘ladi."
   },
   {
     "day": 12,
-    "title": "Ong Tinchligi: Donolikning Gavhari",
-    "short": "Ongning tinchligi — yillar davomidagi o‘zini boshqarish mevasidir. Bir odamning hayotida tinchlik borligi — uning tajribasi, sabr-toqati va fikrlarni boshqarish san’atini o‘zlashtirganidan darak beradi."
+    "title": "Diqqatning kuchi",
+    "short": "Nimani ko‘proq ko‘rsang va o‘ylasang, asta-sekin o‘shanga aylanib borasan. Shuning uchun diqqatni qaerga sarflayotganingni himoya qil."
+  },
+  {
+    "day": 13,
+    "title": "Diqqatning kuchi",
+    "short": "Nimani ko‘proq ko‘rsang va o‘ylasang, asta-sekin o‘shanga aylanib borasan. Shuning uchun diqqatni qaerga sarflayotganingni himoya qil."
+  },
+  {
+    "day": 14,
+    "title": "Diqqatning kuchi",
+    "short": "Nimani ko‘proq ko‘rsang va o‘ylasang, asta-sekin o‘shanga aylanib borasan. Shuning uchun diqqatni qaerga sarflayotganingni himoya qil."
+  },
+  {
+    "day": 15,
+    "title": "Diqqatning kuchi",
+    "short": "Nimani ko‘proq ko‘rsang va o‘ylasang, asta-sekin o‘shanga aylanib borasan. Shuning uchun diqqatni qaerga sarflayotganingni himoya qil."
+  },
+  {
+    "day": 16,
+    "title": "Diqqatning kuchi",
+    "short": "Nimani ko‘proq ko‘rsang va o‘ylasang, asta-sekin o‘shanga aylanib borasan. Shuning uchun diqqatni qaerga sarflayotganingni himoya qil."
   }
-  
 ]
+

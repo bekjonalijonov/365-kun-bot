@@ -1,7 +1,7 @@
 // index.js
 // =========================================
-//  Yangi Odat 🌱 — 365 Kunlik G‘oyalar Bot
-//  PREMIUM (O‘qidim 👍) tizimi
+//  Yangi Odat — 365 Kunlik G‘oyalar Bot
+//  SUPABASE + Top-50 Reyting + Xavfsizlik
 //  Node >= 20, "type": "module"
 // =========================================
 
@@ -13,26 +13,35 @@ import path from "path";
 import { fileURLToPath } from "url";
 import TelegramBot from "node-telegram-bot-api";
 import schedule from "node-schedule";
+import { createClient } from "@supabase/supabase-js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const dataPath = (file) => path.join(__dirname, "data", file);
 
 // ------------------------ ENV ---------------------------
-const BOT_TOKEN = process.env.BOT_TOKEN;
-const CHANNEL_ID = process.env.CHANNEL_ID;
-const START_DATE = process.env.START_DATE;
+const {
+  BOT_TOKEN,
+  CHANNEL_ID,
+  START_DATE,
+  SUPABASE_URL,
+  SUPABASE_KEY
+} = process.env;
 
-if (!BOT_TOKEN || !CHANNEL_ID || !START_DATE) {
-  console.error("❌ .env da BOT_TOKEN, CHANNEL_ID yoki START_DATE yo‘q.");
+if (!BOT_TOKEN || !CHANNEL_ID || !START_DATE || !SUPABASE_URL || !SUPABASE_KEY) {
+  console.error("❌ .env faylida kerakli ma'lumotlar yetishmayapti!");
   process.exit(1);
 }
 
-// ------------------------ BOT INIT -----------------------
+// ------------------------ SUPABASE ------------------------
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+console.log("✅ Supabase ulandi");
+
+// ------------------------ BOT ------------------------
 const bot = new TelegramBot(BOT_TOKEN, { polling: true });
 console.log("✅ Bot ishga tushdi...");
 
-// ------------------------ JSON LOAD ----------------------
+// ------------------------ JSON DATA ------------------------
 function loadJsonSafe(file, def) {
   try {
     const raw = fs.readFileSync(dataPath(file), "utf-8");
@@ -42,24 +51,11 @@ function loadJsonSafe(file, def) {
   }
 }
 
-let ideas = loadJsonSafe("ideas.json", []);
-let tasks = loadJsonSafe("tasks.json", []);
-let telegraphLinks = loadJsonSafe("telegraph_links.json", []);
+const ideas = loadJsonSafe("ideas.json", []);
+const tasks = loadJsonSafe("tasks.json", []);
+const telegraphLinks = loadJsonSafe("telegraph_links.json", []);
 
-// 🔥 Necha odam o‘qiganini saqlash
-let readCount = loadJsonSafe("read_count.json", {});
-function saveReadCount() {
-  fs.writeFileSync(dataPath("read_count.json"), JSON.stringify(readCount, null, 2));
-}
-
-// 🔥 Har bir mini vazifani bajarganlar
-// FORMAT: { "25": { "0": ["123","456"], "1":["789"] } }
-let taskDone = loadJsonSafe("task_done.json", {});
-function saveTaskDone() {
-  fs.writeFileSync(dataPath("task_done.json"), JSON.stringify(taskDone, null, 2));
-}
-
-// ------------------------ DAY CALC -----------------------
+// ------------------------ KUN HISOBLASH ------------------------
 function getDayNumber(date = new Date()) {
   const start = new Date(START_DATE + "T00:00:00");
   const diffMs = date.getTime() - start.getTime();
@@ -71,185 +67,221 @@ function getDayNumber(date = new Date()) {
 
 const getIdea = (d) => ideas.find((x) => x.day === d);
 const getTasksList = (d) => tasks.find((x) => x.day === d)?.tasks || [];
-const getTelegraphUrl = (d) =>
-  telegraphLinks.find((x) => x.day === d)?.url || null;
+const getTelegraphUrl = (d) => telegraphLinks.find((x) => x.day === d)?.url || null;
 
-// ------------------------ DAILY POST ---------------------
+// ------------------------ SUPABASE HELPER ------------------------
+async function getOrCreateUser(userId, first_name, last_name, username) {
+  const { data, error } = await supabase
+    .from("users")
+    .upsert(
+      { telegram_id: userId, first_name, last_name: last_name || null, username: username || null },
+      { onConflict: "telegram_id" }
+    )
+    .select()
+    .single();
+
+  if (error && error.code !== "23505") console.error("User upsert error:", error);
+  return data;
+}
+
+async function markRead(userId, day) {
+  await supabase.from("reads").upsert({ user_id: userId, day }, { onConflict: "user_id,day" });
+}
+
+async function markTaskDone(userId, day, taskIndex) {
+  await supabase.from("task_done").upsert(
+    { user_id: userId, day, task_index: taskIndex },
+    { onConflict: "user_id,day,task_index" }
+  );
+}
+
+// ------------------------ KUNLIK POST (5:00) ------------------------
 async function sendDailyPost(chatId, date = new Date()) {
   const day = getDayNumber(date);
   const idea = getIdea(day);
   const url = getTelegraphUrl(day);
 
-  if (!readCount[day]) {
-    readCount[day] = { count: 0, users: [] };
-    saveReadCount();
-  }
-
-  const count = readCount[day].count;
-
-  const txt =
-    `📘 Kun ${day}/365\n` +
-    `“${idea?.title || ""}”\n\n` +
-    `${idea?.short || ""}\n\n` +
-    `👇 Batafsil o‘qish:\n`;
+  const txt = `📘 *Kun ${day}/365*\n\n“${idea?.title || "G‘oya topilmadi"}”\n\n${idea?.short || ""}\n\n👇 Batafsil o‘qish:`;
 
   const inline_keyboard = [];
 
-  if (url) {
-    inline_keyboard.push([{ text: "🔍 Batafsil", url }]);
-  }
+  if (url) inline_keyboard.push([{ text: "🔍 Batafsil o‘qish", url }]);
 
-  // O‘qidim tugmasi
-  inline_keyboard.push([
-    {
-      text: `O‘qidim 👍 (${count} ta)`,
-      callback_data: `read_${day}`
-    }
-  ]);
+  const { count: readCnt = 0 } = await supabase.from("reads").select("*", { count: "exact", head: true }).eq("day", day);
+  inline_keyboard.push([{ text: `O‘qidim 👍 (${readCnt} ta)`, callback_data: `read_${day}` }]);
 
-  await bot.sendMessage(chatId, txt, {
-    parse_mode: "Markdown",
-    reply_markup: { inline_keyboard }
-  });
+  await bot.sendMessage(chatId, txt, { parse_mode: "Markdown", reply_markup: { inline_keyboard } });
 
-  // MINI VAZIFA
+  // MINI VAZIFALAR
   const taskArr = getTasksList(day);
-  if (taskArr.length) {
-    if (!taskDone[day]) taskDone[day] = {};
+  if (taskArr.length > 0) {
+    const taskTxt = `🧠 *Bugungi Challenge*\n\n${taskArr.map((t, i) => `${i + 1}) ${t}`).join("\n")}\n\n#Odat40kun #Kun${day}`;
 
+    const taskKeyboard = [];
     for (let i = 0; i < taskArr.length; i++) {
-      if (!Array.isArray(taskDone[day][i])) taskDone[day][i] = [];
+      const { count = 0 } = await supabase
+        .from("task_done")
+        .select("*", { count: "exact", head: true })
+        .eq("day", day)
+        .eq("task_index", i);
+      taskKeyboard.push([{ text: `${i + 1}-ni bajardim 🤝 (${count} ta)`, callback_data: `task_${day}_${i}` }]);
     }
-    saveTaskDone();
 
-    const taskTxt =
-      `🧠 Bugungi Challenge\n\n` +
-      taskArr.map((v, i) => `${i + 1}) ${v}`).join("\n") +
-      `\n\n#Odat40kun #Kun${day}`;
-
-    // 🔥 Tugmalar: 1-ni bajardim, 2-ni bajardim, 3-ni bajardim
-    const taskKeyboard = taskArr.map((_, index) => {
-      const cnt = taskDone[day][index].length;
-      return [
-        {
-          text: `${index + 1}-ni bajardim 🤝 (${cnt} ta)`,
-          callback_data: `task_${day}_${index}`
-        }
-      ];
-    });
-
-    await bot.sendMessage(chatId, taskTxt, {
-      parse_mode: "Markdown",
-      reply_markup: { inline_keyboard: taskKeyboard }
-    });
+    await bot.sendMessage(chatId, taskTxt, { parse_mode: "Markdown", reply_markup: { inline_keyboard: taskKeyboard } });
   }
 }
 
-// ------------------------ CALLBACK QUERY ------------------
-bot.on("callback_query", async (q) => {
-  const data = q.data;
-  const userId = String(q.from.id);
+// ------------------------ KECHAGI NATIJALAR + TOP-50 (2:00) ------------------------
+async function sendYesterdayResults() {
+  const yesterday = getDayNumber(new Date(Date.now() - 86400000));
 
-  // ---------------- O‘QIDIM ----------------
+  // Kechagi o‘qiganlar
+  const { count: readCount = 0 } = await supabase.from("reads").select("*", { count: "exact", head: true }).eq("day", yesterday);
+
+  // Kechagi vazifalar statistikasi
+  const { data: taskData } = await supabase.from("task_done").select("task_index").eq("day", yesterday);
+  const taskStats = {};
+  taskData?.forEach(t => taskStats[t.task_index] = (taskStats[t.task_index] || 0) + 1);
+
+  const taskLines = Object.keys(taskStats)
+    .sort((a, b) => taskStats[b] - taskStats[a])
+    .map(idx => `${Number(idx) + 1}-vazifa: ${taskStats[idx]} kishi`)
+    .join("\n") || "Hech kim bajarmadi";
+
+  // Umumiy reyting (barcha kunlar bo‘yicha)
+  const { data: allReads } = await supabase.from("reads").select("user_id");
+  const scores = {};
+  allReads?.forEach(r => scores[r.user_id] = (scores[r.user_id] || 0) + 1);
+
+  const userIds = Object.keys(scores);
+  let top50 = [];
+
+  if (userIds.length > 0) {
+    const { data: users } = await supabase
+      .from("users")
+      .select("telegram_id, first_name, last_name")
+      .in("telegram_id", userIds);
+
+    top50 = users
+      .map(u => ({
+        name: `${u.first_name} ${u.last_name || ""}`.trim(),
+        score: scores[u.telegram_id]
+      }))
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 50);
+  }
+
+  const medal = (i) => i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `${i + 1}-chi`;
+
+  const ratingText = top50.length
+    ? top50.map((u, i) => `${medal(i)} ${u.name} — *${u.score} kun*`).join("\n")
+    : "Hali hech kim yo‘q";
+
+  const finalText = `
+🌅 *Kechagi natijalar #Kun${yesterday}*
+
+📖 O‘qidi: *${readCount}* kishi
+✅ Bajarilgan vazifalar:
+${taskLines}
+
+🏆 *Top 50 Liderlar* (umumiy kunlar bo‘yicha):
+${ratingText}
+
+🔥 Bugun ham kuchli bo‘lamiz! Birga oldinga! 🚀
+`.trim();
+
+  await bot.sendMessage(CHANNEL_ID, finalText, { parse_mode: "Markdown" });
+}
+
+// ------------------------ CALLBACK ------------------------
+bot.on("callback_query", async (q) => {
+  const userId = String(q.from.id);
+  const user = q.from;
+  const data = q.data;
+
+  await getOrCreateUser(userId, user.first_name, user.last_name, user.username);
+
+  // O‘qidim
   if (data.startsWith("read_")) {
     const day = Number(data.split("_")[1]);
 
-    if (!readCount[day]) readCount[day] = { count: 0, users: [] };
-
-    if (readCount[day].users.includes(userId)) {
-      return bot.answerCallbackQuery(q.id, {
-        text: "Siz allaqachon o‘qigansiz 👍",
-        show_alert: true
-      });
+    const { data: alreadyRead } = await supabase.from("reads").select("user_id").eq("user_id", userId).eq("day", day);
+    if (alreadyRead?.length > 0) {
+      return bot.answerCallbackQuery(q.id, { text: "Siz allaqachon o‘qigansiz 👍", show_alert: true });
     }
 
-    readCount[day].users.push(userId);
-    readCount[day].count++;
-    saveReadCount();
+    await markRead(userId, day);
 
-    const newCount = readCount[day].count;
+    const { count = 0 } = await supabase.from("reads").select("*", { count: "exact", head: true }).eq("day", day);
 
     try {
-      await bot.editMessageReplyMarkup(
-        {
-          inline_keyboard: [
-            [{ text: "🔍 Batafsil", url: getTelegraphUrl(day) }],
-            [{ text: `O‘qidim 👍 (${newCount} ta)`, callback_data: `read_${day}` }]
-          ]
-        },
-        {
-          chat_id: q.message.chat.id,
-          message_id: q.message.message_id
-        }
-      );
+      const kb = [[{ text: `O‘qidim 👍 (${count} ta)`, callback_data: `read_${day}` }]];
+      if (getTelegraphUrl(day)) kb.unshift([{ text: "🔍 Batafsil o‘qish", url: getTelegraphUrl(day) }]);
+
+      await bot.editMessageReplyMarkup({ inline_keyboard: kb }, {
+        chat_id: q.message.chat.id,
+        message_id: q.message.message_id
+      });
     } catch (e) {}
 
-    return bot.answerCallbackQuery(q.id, { text: "Rahmat! 😊" });
+    return bot.answerCallbackQuery(q.id, { text: "Rahmat! Siz zo‘rsiz! 🔥" });
   }
 
-  // ---------------- MINI VAZIFA ----------------
+  // Vazifa bajarildi
   if (data.startsWith("task_")) {
-    const parts = data.split("_");
-    const day = Number(parts[1]);
-    const index = Number(parts[2]);
+    const [_, dayStr, idxStr] = data.split("_");
+    const day = Number(dayStr);
+    const index = Number(idxStr);
 
-    if (!taskDone[day]) taskDone[day] = {};
-    if (!Array.isArray(taskDone[day][index])) taskDone[day][index] = [];
+    const { data: alreadyDone } = await supabase
+      .from("task_done")
+      .select("user_id")
+      .eq("user_id", userId)
+      .eq("day", day)
+      .eq("task_index", index);
 
-    if (taskDone[day][index].includes(userId)) {
-      return bot.answerCallbackQuery(q.id, {
-        text: "Bu vazifani allaqachon bajargansiz ✅",
-        show_alert: true
-      });
+    if (alreadyDone?.length > 0) {
+      return bot.answerCallbackQuery(q.id, { text: "Bu vazifani allaqachon bajargansiz ✅", show_alert: true });
     }
 
-    taskDone[day][index].push(userId);
-    saveTaskDone();
+    await markTaskDone(userId, day, index);
 
-    // Tugmani yangilash
+    const taskArr = getTasksList(day);
+    const newKb = [];
+    for (let i = 0; i < taskArr.length; i++) {
+      const { count = 0 } = await supabase
+        .from("task_done")
+        .select("*", { count: "exact", head: true })
+        .eq("day", day)
+        .eq("task_index", i);
+      newKb.push([{ text: `${i + 1}-ni bajardim 🤝 (${count} ta)`, callback_data: `task_${day}_${i}` }]);
+    }
+
     try {
-      const taskArr = getTasksList(day);
-
-      const newKeyboard = taskArr.map((_, i) => {
-        const cnt = taskDone[day][i].length;
-        return [
-          {
-            text: `${i + 1}-ni bajardim 🤝 (${cnt} ta)`,
-            callback_data: `task_${day}_${i}`
-          }
-        ];
+      await bot.editMessageReplyMarkup({ inline_keyboard: newKb }, {
+        chat_id: q.message.chat.id,
+        message_id: q.message.message_id
       });
-
-      await bot.editMessageReplyMarkup(
-        { inline_keyboard: newKeyboard },
-        {
-          chat_id: q.message.chat.id,
-          message_id: q.message.message_id
-        }
-      );
     } catch (e) {}
 
-    return bot.answerCallbackQuery(q.id, {
-      text: "Zo‘r! Vazifa bajarildi! 🚀"
-    });
+    return bot.answerCallbackQuery(q.id, { text: "Ajoyib ish! Oldinga! 🚀" });
   }
 });
 
-// ------------------------ SCHEDULE -----------------------
-// Har kuni 00:00 da kanalga yuboriladi
-schedule.scheduleJob("0 0 0 * * *", () => {
+// ------------------------ SCHEDULE ------------------------
+schedule.scheduleJob("0 0 2 * * *", () => {
+  console.log("⏰ 2:00 — Kechagi natijalar yuborilmoqda...");
+  sendYesterdayResults();
+});
+
+schedule.scheduleJob("0 0 5 * * *", () => {
   const now = new Date();
-  console.log("⏰ Kunlik post:", now.toISOString());
+  console.log("⏰ 5:00 — Yangi kunlik post yuborilmoqda...");
   sendDailyPost(CHANNEL_ID, now);
 });
 
-// ------------------------ TEST KOMANDALAR ----------------
-bot.onText(/\/test_today/, (msg) => {
-  sendDailyPost(msg.chat.id, new Date());
-});
+// ------------------------ TEST KOMANDALAR ------------------------
+bot.onText(/\/test_today/, (msg) => sendDailyPost(msg.chat.id));
+bot.onText(/\/test_yesterday/, () => sendYesterdayResults());
 
-bot.onText(/\/test_day_(\d+)/, (msg, match) => {
-  const day = Number(match[1]);
-  const url = getTelegraphUrl(day);
-  bot.sendMessage(msg.chat.id, `Kun ${day} linki: ${url || "topilmadi"}`);
-});
+console.log("🚀 Bot to‘liq ishga tayyor!");

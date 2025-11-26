@@ -111,15 +111,15 @@ async function sendDailyPost(chatId, date = new Date()) {
   const url = getTelegraphUrl(day);
 
   const txt =
-    `Kun ${day}/365\n` +
+    `📚 Kun ${day}/365\n` +
     `“${idea?.title || ""}”\n\n` +
     `${idea?.short || ""}\n\n` +
-    `Batafsil o‘qish:\n`;
+    `👇 Batafsil o‘qish:\n`;
 
   const inline_keyboard = [];
 
   if (url) {
-    inline_keyboard.push([{ text: "Batafsil", url }]);
+    inline_keyboard.push([{ text: "Batafsil 🔎", url }]);
   }
 
   const readCount = await supabase
@@ -130,7 +130,7 @@ async function sendDailyPost(chatId, date = new Date()) {
 
   inline_keyboard.push([
     {
-      text: `O‘qidim (${count} ta)`,
+      text: `O‘qidim 👍(${count} ta)`,
       callback_data: `read_${day}`
     }
   ]);
@@ -144,7 +144,7 @@ async function sendDailyPost(chatId, date = new Date()) {
   const taskArr = getTasksList(day);
   if (taskArr.length) {
     const taskTxt =
-      `Bugungi Challenge\n\n` +
+      `⚔️ Bugungi Challenge\n\n` +
       taskArr.map((v, i) => `${i + 1}) ${v}`).join("\n") +
       `\n\n#Odat40kun #Kun${day}`;
 
@@ -158,7 +158,7 @@ async function sendDailyPost(chatId, date = new Date()) {
       const cnt = done.data?.length || 0;
       taskKeyboard.push([
         {
-          text: `${i + 1}-ni bajardim (${cnt} ta)`,
+          text: `${i + 1}-ni bajardim 🤝(${cnt} ta)`,
           callback_data: `task_${day}_${i}`
         }
       ]);
@@ -216,7 +216,7 @@ async function sendYesterdayResults() {
           score: userScores[u.telegram_id]
         }))
         .sort((a, b) => b.score - a.score)
-        .slice(0, 20);
+        .slice(0, 40);
 
       return { data: sorted };
     });
@@ -230,16 +230,17 @@ async function sendYesterdayResults() {
     : "Hali hech kim yo‘q";
 
   const resultText = `
-Kechagi natijalar #Kun${yesterday}
+🌱 Kechagi natijalar: #Kun${yesterday}
 
-O‘qidi: ${readCount} kishi
-Bajarilgan vazifalar:
+📚 O‘qidi: ${readCount} kishi
+🎉 Bajarilgan vazifalar:
 ${taskText}
 
-Top 20 Liderlar (umumiy kunlar bo‘yicha):
+👋 Top 40 ta Liderlar (umumiy kunlar bo‘yicha):
 ${ratingText}
 
 Siz ham bugun kuchli bo‘ling!
+Yiqilsangiz qayta turing shunda yutgan boʻlasiz 
 `;
 
   await bot.sendMessage(CHANNEL_ID, resultText, { parse_mode: "Markdown" });
@@ -282,8 +283,8 @@ bot.on("callback_query", async (q) => {
       await bot.editMessageReplyMarkup(
         {
           inline_keyboard: [
-            getTelegraphUrl(day) ? [{ text: "Batafsil", url: getTelegraphUrl(day) }] : [],
-            [{ text: `O‘qidim (${newCount} ta)`, callback_data: `read_${day}` }]
+            getTelegraphUrl(day) ? [{ text: "Batafsil 🔎", url: getTelegraphUrl(day) }] : [],
+            [{ text: `O‘qidim 👍(${newCount} ta)`, callback_data: `read_${day}` }]
           ].filter(arr => arr.length)
         },
         {
@@ -328,7 +329,7 @@ bot.on("callback_query", async (q) => {
         .eq("task_index", i);
       newKeyboard.push([
         {
-          text: `${i + 1}-ni bajardim (${count || 0} ta)`,
+          text: `${i + 1}-ni bajardim 🤝(${count || 0} ta)`,
           callback_data: `task_${day}_${i}`
         }
       ]);

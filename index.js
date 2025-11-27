@@ -193,40 +193,52 @@ async function sendYesterdayResults() {
     .map(idx => `${Number(idx) + 1}-vazifa: ${taskStats[idx]} kishi`)
     .join("\n") || "Hech kim bajarmadi";
 
-  // Umumiy reyting (barcha kunlar bo'yicha)
-  const { data: rating } = await supabase
-    .from("reads")
-    .select("user_id")
-    .then(async ({ data }) => {
-      const userScores = {};
-      data.forEach(r => {
-        if (!userScores[r.user_id]) userScores[r.user_id] = 0;
-        userScores[r.user_id]++;
-      });
+  // === YANGI QISM: UMUMIY REYTING (reads + task_done) ===
+  // 1) Barcha reads va task_done yozuvlarini olib kelamiz
+  const [allReadsRes, allTasksRes] = await Promise.all([
+    supabase.from("reads").select("user_id"),
+    supabase.from("task_done").select("user_id")
+  ]);
 
-      const userIds = Object.keys(userScores);
-      const { data: users } = await supabase
-        .from("users")
-        .select("telegram_id, first_name, last_name")
-        .in("telegram_id", userIds);
+  const userScores = {};
 
-      const sorted = users
-        .map(u => ({
-          name: `${u.first_name} ${u.last_name || ""}`.trim(),
-          score: userScores[u.telegram_id]
-        }))
-        .sort((a, b) => b.score - a.score)
-        .slice(0, 40);
+  // 2) Har bir read -> +1 ball
+  (allReadsRes.data || []).forEach(r => {
+    const uid = String(r.user_id);
+    userScores[uid] = (userScores[uid] || 0) + 1;
+  });
 
-      return { data: sorted };
-    });
+  // 3) Har bir task_done yozuvi -> +1 ball
+  (allTasksRes.data || []).forEach(t => {
+    const uid = String(t.user_id);
+    userScores[uid] = (userScores[uid] || 0) + 1;
+  });
 
+  // 4) Agar hech kim yo'q bo'lsa, rating bo'sh
+  const userIds = Object.keys(userScores);
+  let rating = [];
+  if (userIds.length) {
+    // Supabase dan user ma'lumotlarini olib kelamiz
+    const { data: users } = await supabase
+      .from("users")
+      .select("telegram_id, first_name, last_name")
+      .in("telegram_id", userIds.map(id => Number(id)));
+
+    // 5) Users massiviga ballni biriktirib sort qilamiz
+    rating = (users || [])
+      .map(u => ({
+        name: `${u.first_name} ${u.last_name || ""}`.trim() || String(u.telegram_id),
+        score: userScores[String(u.telegram_id)] || 0
+      }))
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 40);
+  }
+
+  // Medal/pozitsiya labeli (xuddi avvalgi kabi)
   const medal = (pos) => pos === 0 ? "1st" : pos === 1 ? "2nd" : pos === 2 ? "3rd" : `${pos + 1}-chi`;
 
   const ratingText = rating.length
-    ? rating
-        .map((u, i) => `${medal(i)} ${u.name} — ${u.score} kun`)
-        .join("\n")
+    ? rating.map((u, i) => `${medal(i)} ${u.name} — ${u.score} ball`).join("\n")
     : "Hali hech kim yo‘q";
 
   const resultText = `
@@ -236,15 +248,16 @@ async function sendYesterdayResults() {
 🎉 Bajarilgan vazifalar:
 ${taskText}
 
-👋 Top 40 ta Liderlar (umumiy kunlar bo‘yicha):
+👋 Top 40 Liderlar (ballar: O‘qilgan kunlar + bajarilgan vazifalar):
 ${ratingText}
 
 Siz ham bugun kuchli bo‘ling!
-Yiqilsangiz qayta turing shunda yutgan boʻlasiz 
+Yiqilsangiz qayta turing shunda yutgan boʻlasiz.
 `;
 
   await bot.sendMessage(CHANNEL_ID, resultText, { parse_mode: "Markdown" });
 }
+    
 
 // ------------------------ CALLBACK QUERY ------------------
 bot.on("callback_query", async (q) => {

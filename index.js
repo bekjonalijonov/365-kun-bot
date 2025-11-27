@@ -370,7 +370,7 @@ schedule.scheduleJob("0 0 21 * * *", () => {
 });
 
 // Har kuni 5:00 → Yangi kunlik post
-schedule.scheduleJob("0 0 3 * * *", () => {
+schedule.scheduleJob("0 0 0 * * *", () => {
   const now = new Date();
   console.log("Kunlik post:", now.toISOString());
   sendDailyPost(CHANNEL_ID, now);

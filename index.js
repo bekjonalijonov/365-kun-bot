@@ -351,13 +351,13 @@ bot.on("callback_query", async (q) => {
 
 // ------------------------ SCHEDULES -----------------------
 // Har kuni 2:00 → Kechagi natijalar + Reyting
-schedule.scheduleJob("0 0 2 * * *", () => {
+schedule.scheduleJob("0 0 21 * * *", () => {
   console.log("Natijalar yuborilmoqda...");
   sendYesterdayResults();
 });
 
 // Har kuni 5:00 → Yangi kunlik post
-schedule.scheduleJob("0 0 5 * * *", () => {
+schedule.scheduleJob("0 0 3 * * *", () => {
   const now = new Date();
   console.log("Kunlik post:", now.toISOString());
   sendDailyPost(CHANNEL_ID, now);
